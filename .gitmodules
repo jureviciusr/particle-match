@@ -1,0 +1,3 @@
+[submodule "FAsT-Match"]
+	path = FAsT-Match
+	url = https://github.com/subokita/FAsT-Match
