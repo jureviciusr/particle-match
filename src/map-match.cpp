@@ -26,16 +26,17 @@ int main(int ac, char *av[]) {
 
     airvision::BaseMap mapper(L"/home/rokas/Workspace/assets/maps/lithuania/Vilnius2/Satellite",
                               airvision::Coordinate(54.581691903,25.172194660),
-                              cv::Size(4, 4),
+                              cv::Size(7, 6),
                               18);
 
     cv::Mat templ = cv::imread("/home/rokas/Workspace/AirVision-Global/Pipelines/snapshots/48bc9618-4aac-4cf0-8d64-557e8604b893.png");
 
     cv::Mat map = mapper.getSatelliteImage();
+    cv::imwrite("orthophoto.png", map);
     cv::Mat graymap;
     cv::cvtColor(map, graymap, CV_BGR2GRAY);
     fast_match::FAsTMatch fast_match;
-    fast_match.init( 0.1f, 0.9f, true, 0.8f, 1.2f );
+    fast_match.init( 0.05f, 0.9f, true, 0.8f, 1.2f );
 
     double scaleFactor = 4;
     double scaleDownFactor = 1 / scaleFactor;
@@ -56,8 +57,8 @@ int main(int ac, char *av[]) {
     line(map, corners[2] * scaleFactor, corners[3] * scaleFactor, Scalar(0, 0, 255), 2);
     line(map, corners[3] * scaleFactor, corners[0] * scaleFactor, Scalar(0, 0, 255), 2);
 
-    //cv::resize(map, map, cv::Size(0, 0), 0.33, 0.33);
-    //cv::imwrite("map.png", map);
+    cv::resize(map, map, cv::Size(0, 0), 0.33, 0.33);
+    cv::imwrite("map.png", map);
     cv::namedWindow("Map", CV_WINDOW_AUTOSIZE);
     cv::imshow("Map", map);
     cv::waitKey(0);

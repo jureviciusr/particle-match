@@ -1,0 +1,17 @@
+#######################################################
+# fastmatch source dir
+set( fastmatch_SOURCE_DIR "@CMAKE_CURRENT_SOURCE_DIR@")
+
+#######################################################
+# fastmatch build dir
+set( fastmatch_DIR "@CMAKE_CURRENT_BINARY_DIR@")
+
+#######################################################
+set( fastmatch_INCLUDE_DIR  "@fastmatch_INCLUDE_DIR@" )
+set( fastmatch_INCLUDE_DIRS "@fastmatch_INCLUDE_DIR@" )
+
+set( fastmatch_LIBRARIES    "@fastmatch_LIBRARIES@" )
+set( fastmatch_LIBRARY      "@fastmatch_LIBRARIES@" )
+
+set( fastmatch_LIBRARY_DIR  "@fastmatch_LIBRARY_DIR@" )
+set( fastmatch_LIBRARY_DIRS "@fastmatch_LIBRARY_DIR@" )
