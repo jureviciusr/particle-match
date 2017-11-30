@@ -35,3 +35,7 @@
 
 .idea
 build
+
+templates*
+rgb_templates
+cmake-*
