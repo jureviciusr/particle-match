@@ -5,12 +5,16 @@ include_directories(FAsT-Match)
 set(CMAKE_CXX_STANDARD 14)
 add_definitions(-fext-numeric-literals)
 
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 FIND_PACKAGE( Boost 1.40 COMPONENTS system program_options filesystem thread REQUIRED )
 find_package( OpenCV REQUIRED )
 find_package( map_library REQUIRED )
+find_package( GeographicLib REQUIRED )
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${map_library_INCLUDE_DIR})
+include_directories(${GeographicLib_INCLUDE_DIR})
 
 link_directories(${map_library_LIBRARY_DIR})
 message(STATUS ${map_library_LIBRARY_DIR})
@@ -31,6 +35,21 @@ set(SOURCES
         FAsT-Match/FAsT-Match/MatchConfig.cpp
         FAsT-Match/FAsT-Match/MatchNet.cpp)
 
+include_directories(include)
+add_library(datasetreader SHARED
+        include/fastmatch-dataset/MetadataEntry.hpp
+        include/fastmatch-dataset/MetadataEntryReader.hpp
+        include/fastmatch-dataset/Quaternion.hpp
+        include/fastmatch-dataset/Vector3d.hpp
+        include/fastmatch-dataset/Map.hpp
+        src/classes/MetadataEntryReader.cpp
+        src/classes/MetadataEntry.cpp
+        src/classes/Quaternion.cpp
+        src/classes/Vector3d.cpp
+        src/classes/Map.cpp
+        )
+target_link_libraries(datasetreader ${OpenCV_LIBS} ${Boost_LIBRARIES} ${GeographicLib_LIBRARY})
+
 add_library(fastmatch SHARED ${SOURCES})
 target_link_libraries(fastmatch ${OpenCV_LIBS} ${Boost_LIBRARIES} tbb)
 
@@ -48,12 +67,8 @@ target_link_libraries(fast-map-match fastmatch ${Boost_LIBRARIES} ${map_library_
 
 add_executable(run-dataset
         src/run-dataset.cpp
-        src/classes/MetadataEntryReader.cpp
-        src/classes/MetadataEntry.cpp
-        src/classes/Quaternion.cpp
-        src/classes/Vector3d.cpp
         )
-target_link_libraries(run-dataset fastmatch ${Boost_LIBRARIES} ${map_library_LIBRARIES})
+target_link_libraries(run-dataset fastmatch datasetreader ${Boost_LIBRARIES} ${map_library_LIBRARIES})
 
 SET(fastmatch_LIBRARIES AirvisionSensorComm fastmatch ${OpenCV_LIBS} tbb)
 SET(fastmatch_LIBRARY_DIR ${PROJECT_BINARY_DIR} )

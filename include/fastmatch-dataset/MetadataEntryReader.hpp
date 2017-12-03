@@ -9,6 +9,7 @@
 #include <boost/tokenizer.hpp>
 #include <fstream>
 #include "MetadataEntry.hpp"
+#include "Map.hpp"
 
 
 class MetadataEntryReader {
@@ -28,10 +29,17 @@ private:
 
     void fillMetadata(MetadataEntry& entry, std::map<std::string, std::string>& values);
 
+    MapPtr map = nullptr;
+
 public:
+
     bool openDirectory(const std::string &datasetDir);
 
     bool readNextEntry(MetadataEntry& metadataEntry);
+
+    void setMap(const std::string& mapFile, const std::string& mapDescription);
+
+    const MapPtr &getMap() const;
 
 };
 

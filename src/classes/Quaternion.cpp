@@ -2,7 +2,7 @@
 // Created by rokas on 17.11.30.
 //
 
-#include "Quaternion.hpp"
+#include "fastmatch-dataset/Quaternion.hpp"
 
 double Quaternion::getX() const {
     return x;

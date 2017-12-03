@@ -4,7 +4,7 @@
 
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
-#include "MetadataEntryReader.hpp"
+#include "fastmatch-dataset/MetadataEntryReader.hpp"
 
 std::vector<std::string> MetadataEntryReader::parseString(const std::string &line) {
     std::vector<std::string> parts;
@@ -89,4 +89,12 @@ void MetadataEntryReader::fillMetadata(MetadataEntry &entry, std::map<std::strin
             std::atof(values["SvoZ"].c_str())
 
     );
+}
+
+void MetadataEntryReader::setMap(const std::string &mapFile, const std::string &mapDescription) {
+    map = std::make_shared<Map>(mapFile, mapDescription);
+}
+
+const MapPtr &MetadataEntryReader::getMap() const {
+    return map;
 };

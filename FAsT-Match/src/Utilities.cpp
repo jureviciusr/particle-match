@@ -52,10 +52,10 @@ Mat Utilities::makeOdd(Mat &image) {
  * rectangle
  */
 std::vector<cv::Point> Utilities::calcCorners(cv::Size image_size, cv::Size templ_size, cv::Mat &affine) {
-    float r1x = 0.5 * (templ_size.width - 1),
-            r1y = 0.5 * (templ_size.height - 1),
-            r2x = 0.5 * (image_size.width - 1),
-            r2y = 0.5 * (image_size.height - 1);
+    float r1x = 0.5f * (templ_size.width - 1),
+            r1y = 0.5f * (templ_size.height - 1),
+            r2x = 0.5f * (image_size.width - 1),
+            r2y = 0.5f * (image_size.height - 1);
 
     float a11 = affine.at<float>(0, 0),
             a12 = affine.at<float>(0, 1),

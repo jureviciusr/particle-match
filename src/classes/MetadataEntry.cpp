@@ -4,7 +4,7 @@
 
 #include <opencv2/imgcodecs.hpp>
 #include <opencv/cv.hpp>
-#include "MetadataEntry.hpp"
+#include "fastmatch-dataset/MetadataEntry.hpp"
 
 cv::Mat MetadataEntry::getImage() {
     return cv::imread(imageFullPath, cv::IMREAD_GRAYSCALE);

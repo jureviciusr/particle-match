@@ -2,7 +2,7 @@
 // Created by rokas on 17.11.30.
 //
 
-#include "Vector3d.hpp"
+#include "fastmatch-dataset/Vector3d.hpp"
 
 double Vector3d::getX() const {
     return x;
