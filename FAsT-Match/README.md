@@ -1,3 +1,6 @@
+Forked from https://github.com/subokita/FAsT-Match
+Changes were considerable, so moved everything here
+
 FAsT-Match
 ==========
 
