@@ -21,22 +21,15 @@ public:
     void addParticle(Particle p);
 
 protected:
-    float minScale, maxScale;
+    std::shared_ptr<std::vector<float>> s_initial = std::make_shared<std::vector<float>>();
 
     cv::RNG rng;
+
     void addParticle(int x, int y);
 
     bool isLocationOccupied(int x, int y);
 
 public:
-    float getMinScale() const;
-
-    void setMinScale(float minScale);
-
-    float getMaxScale() const;
-
-    void setMaxScale(float maxScale);
-
     std::vector<cv::Point> evaluate(cv::Mat image, cv::Mat templ, int no_of_points);
 
     void printProbabilities();
@@ -48,6 +41,8 @@ public:
     void sortAscending();
 
     cv::Point2i getWeightedSum() const;
+
+    void setScale(float min, float max, uint32_t steps = 5);
 };
 
 

@@ -11,10 +11,12 @@ FIND_PACKAGE( Boost 1.40 COMPONENTS system program_options filesystem thread REQ
 find_package( OpenCV REQUIRED )
 find_package( map_library REQUIRED )
 find_package( GeographicLib REQUIRED )
+find_package( Eigen3 REQUIRED )
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${map_library_INCLUDE_DIR})
 include_directories(${GeographicLib_INCLUDE_DIR})
+include_directories(${EIGEN3_INCLUDE_DIR})
 
 link_directories(${map_library_LIBRARY_DIR})
 message(STATUS ${map_library_LIBRARY_DIR})
@@ -62,8 +64,14 @@ target_link_libraries(fastmatch-test fastmatch )
 add_executable(particle-fastmatch-test FAsT-Match/exec/particle-match-test.cpp)
 target_link_libraries(particle-fastmatch-test fastmatch ${Boost_LIBRARIES})
 
+add_executable(dataset-match FAsT-Match/exec/ParticleFilterWorkspace.cpp FAsT-Match/exec/dataset-test.cpp)
+target_link_libraries(dataset-match fastmatch ${Boost_LIBRARIES} datasetreader)
+
 add_executable(fast-map-match src/map-match.cpp)
 target_link_libraries(fast-map-match fastmatch ${Boost_LIBRARIES} ${map_library_LIBRARIES})
+
+add_executable(map-test FAsT-Match/exec/map-tests.cpp)
+target_link_libraries(map-test fastmatch ${Boost_LIBRARIES} datasetreader)
 
 add_executable(run-dataset
         src/run-dataset.cpp

@@ -11,17 +11,15 @@
 class ParticleFastMatch : public fast_match::FAsTMatch {
 public:
     ParticleFastMatch(
-            cv::Point2i startLocation,
-            const cv::Size mapSize,
+            const cv::Point2i& startLocation,
+            const cv::Size& mapSize,
             double radius,
             float epsilon,
             int particleCount,
             float quantile_ = 0.7,
             float kld_error_ = 0.8,
             int bin_size_ = 5,
-            bool use_gaussian = false,
-            float _min_scale = .9f,
-            float _max_scale = 1.1f);
+            bool use_gaussian = false);
     void visualizeParticles(cv::Mat image);
 
     vector<Point> filterParticles(const cv::Point2f& movement, cv::Mat& bestTransform);
@@ -72,6 +70,8 @@ public:
     uint32_t particleCount() const;
 
     cv::Point2i getPredictedLocation() const;
+
+    void setScale(float min, float max, uint32_t searchSteps = 5);
 
 };
 

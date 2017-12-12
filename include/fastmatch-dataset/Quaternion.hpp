@@ -4,9 +4,10 @@
 
 #pragma once
 
+#include <Eigen/Eigen>
+#include "Vector3d.hpp"
 
 class Quaternion {
-protected:
 public:
     double getX() const;
 
@@ -23,6 +24,12 @@ public:
     double getW() const;
 
     void setW(double w);
+
+    Vector3d toRPY() const;
+
+    Vector3d toRPYdegrees() const;
+
+    Eigen::Quaterniond toEigen() const;
 
 protected:
     double x, y, z, w;

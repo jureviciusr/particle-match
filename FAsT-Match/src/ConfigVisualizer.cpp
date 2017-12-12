@@ -49,8 +49,8 @@ void ConfigVisualizer::visualiseParticles(cv::Mat image, Particles particles) {
                 curPoint,
                 color,
                 cv::MARKER_TILTED_CROSS,
-                25,
-                6
+                50,
+                5
         );
     }
 

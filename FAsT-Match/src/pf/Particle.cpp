@@ -28,8 +28,6 @@ std::vector<float> Particle::r_initial = {
         3 * Particle::r_step
 };
 
-std::vector<float> Particle::s_initial = {.9f, .95f, 1.f, 1.05f, 1.1f};
-
 cv::Point2i Particle::mapCenter;
 
 float Particle::getProbability() const {
@@ -49,8 +47,6 @@ void Particle::setProbability(float probability) {
     //Particle::probability = probability;
 }
 
-//Particle::Particle() : x(0), y(0), probability(1.0) {}
-
 Particle::Particle(int x, int y) : x(x), y(y), probability(1.0) {
     updateConfigs();
 }
@@ -63,9 +59,9 @@ const vector<fast_match::MatchConfig> & Particle::getConfigs(int id) {
 }
 
 void Particle::propagate(const cv::Point2f &movement) {
-    double alpha = 2.0;
-    x += movement.x + ((Utilities::gausian_noise(1)) * (movement.x * alpha));
-    y += movement.y + ((Utilities::gausian_noise(1)) * (movement.y * alpha));
+    double alpha = 4.0;
+    x += movement.x + ((Utilities::gausian_noise(1)) * ((movement.x == 0 ? 5 : movement.x) * alpha));
+    y += movement.y + ((Utilities::gausian_noise(1)) * ((movement.y == 0 ? 5 : movement.y) * alpha));
     updateConfigs();
 }
 
@@ -80,9 +76,8 @@ void Particle::setDirection(double direction) {
 
 void Particle::updateConfigs() {
     configs.clear();
-    auto scale_steps = (int) s_initial.size();
+    auto scale_steps = (int) s_initial->size();
     auto rotation_steps = (int) r_initial.size();
-
 
     static std::vector<float> r2_rotations = {
             -(3 * Particle::r_step),
@@ -96,12 +91,17 @@ void Particle::updateConfigs() {
         rotation += Particle::direction;
     }
 
-    for(int sx = 0; sx < scale_steps; sx++) {
-        for (int sy = 0; sy < scale_steps; sy++) {
+    for(uint64_t sx = 0; sx < scale_steps; sx++) {
+        for (uint64_t sy = 0; sy < scale_steps; sy++) {
             for (int r1 = 0; r1 < rotation_steps; r1++) {
                 for (int r2 = 0; r2 < nr2_steps; r2++) {
                     configs.emplace_back(
-                            x - mapCenter.x, y - mapCenter.y, r2_rotations[r2], s_initial[sx], s_initial[sy], rotations[r1]
+                            x - mapCenter.x,
+                            y - mapCenter.y,
+                            r2_rotations[r2],
+                            s_initial->at(sx),
+                            s_initial->at(sy),
+                            rotations[r1]
                     );
                 }
             }
@@ -117,16 +117,7 @@ double Particle::evaluate(cv::Mat &image, cv::Mat &templ, cv::Mat &xs, cv::Mat &
     auto min_itr = min_element(distances.begin(), distances.end());
     int min_index = static_cast<int>(min_itr - distances.begin());
     double best_distance = distances[min_index];
-
-    //best_distances[level] = best_distance;
-
-    //auto max_itr = max_element(distances.begin(), distances.end());
-    //int max_index = static_cast<int>(max_itr - distances.begin());
-    //double worst_distance = distances[max_index];
-
     bestTransform = configs[min_index].getAffineMatrix();
-
-    //return Utilities::calcCorners(image.size(), templ.size(), best_trans);
     setProbability((float) best_distance);
     return best_distance;
 }
@@ -142,7 +133,6 @@ std::vector<cv::Mat> Particle::getAffines(const cv::Size& imageSize, const cv::S
         if (insiders[i] == true)
             temp_configs.push_back(configs[i]);
     configs = temp_configs;
-
     return affines;
 }
 
@@ -188,6 +178,10 @@ void Particle::setWeight(float weight) {
 
 std::string Particle::serialize(int binSize) {
     return std::to_string(x - (x % binSize)) + "x" + std::to_string(y - (y % binSize));
+}
+
+void Particle::setS_initial(const shared_ptr<vector<float>> &s_initial) {
+    Particle::s_initial = s_initial;
 }
 
 Particle::Particle(const Particle &a) = default;

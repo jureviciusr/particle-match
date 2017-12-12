@@ -4,6 +4,7 @@
 
 #include <tbb/parallel_for.h>
 #include <chrono>
+#include <utility>
 #include "ParticleFastMatch.hpp"
 #include "Utilities.hpp"
 #include "AffineTransformation.hpp"
@@ -14,22 +15,17 @@
 
 
 ParticleFastMatch::ParticleFastMatch(
-        cv::Point2i startLocation,
-        const cv::Size mapSize,
+        const cv::Point2i& startLocation,
+        const cv::Size& mapSize,
         double radius,
         float epsilon,
         int particleCount,
         float quantile_,
         float kld_error_,
         int bin_size_,
-        bool use_gaussian,
-        float _min_scale,
-        float _max_scale
-
+        bool use_gaussian
 ) {
     particles.init(startLocation, mapSize, radius, particleCount, use_gaussian);
-    particles.setMaxScale(_max_scale);
-    particles.setMinScale(_min_scale);
     kld_error = kld_error_;
     binSize = bin_size_;
     this->epsilon = epsilon;
@@ -52,7 +48,7 @@ ParticleFastMatch::ParticleFastMatch(
 }
 
 void ParticleFastMatch::visualizeParticles(cv::Mat image) {
-    visualizer.visualiseParticles(image, particles);
+    visualizer.visualiseParticles(std::move(image), particles);
 }
 
 
@@ -100,16 +96,16 @@ vector<Point2f> ParticleFastMatch::filterParticles() {
 
 vector<Point> ParticleFastMatch::filterParticles(const cv::Point2f& movement, cv::Mat& bestTransform) {
     int i = 0;
-    Particles newParticles;
+    Particles newParticles = {};
     int     support_particles = 0,
             samplingCount = minParticles;
     std::vector < std::string > bins;
     double bestProbability = +INFINITY;
     std::sort(particles.begin(), particles.end(), std::less<>());
     initTemplatePixels();
+    unsigned long particleIndex = 0;
     do {
         // Sample previous particle from previous belief
-        unsigned long particleIndex = newParticles.size();
         newParticles.addParticle(particles.sample());
         // Predict next state
         newParticles[particleIndex].propagate(movement);
@@ -133,6 +129,7 @@ vector<Point> ParticleFastMatch::filterParticles(const cv::Point2f& movement, cv
         newParticles[particleIndex].setProbability(prob/*((ccoef + 1) / 2.f)*/);
 
         std::string bin = newParticles[particleIndex].serialize(binSize);
+        particleIndex++;
         if (!(std::find(bins.begin(), bins.end(), bin) != bins.end())) {
             // Mark bin as taken
             bins.push_back(bin);
@@ -185,7 +182,7 @@ ParticleFastMatch::evaluateConfigs(Mat &templ, vector<AffineTransformation> &aff
     int *xs_ptr = xs.ptr<int>(0),
             *ys_ptr = ys.ptr<int>(0);
 
-    vector<float> vals_i1(no_of_points);
+    vector<float> vals_i1(static_cast<unsigned long>(no_of_points));
     for (int i = 0; i < no_of_points; i++)
         vals_i1[i] = templ.at<float>(ys_ptr[i] - 1, xs_ptr[i] - 1);
 
@@ -196,7 +193,7 @@ ParticleFastMatch::evaluateConfigs(Mat &templ, vector<AffineTransformation> &aff
     int *xs_ptr_cent = xs_centered.ptr<int>(0),
             *ys_ptr_cent = ys_centered.ptr<int>(0);
 
-    vector<double> distances(no_of_configs, 0.0);
+    vector<double> distances(static_cast<unsigned long>(no_of_configs), 0.0);
 
     /* Calculate the score for each configurations on each of our randomly sampled points */
     tbb::parallel_for(0, no_of_configs, 1, [&](int i) {
@@ -225,8 +222,8 @@ ParticleFastMatch::evaluateConfigs(Mat &templ, vector<AffineTransformation> &aff
 
             }
         } else {
-            vector<double> xs_target(no_of_points),
-                    ys_target(no_of_points);
+            vector<double> xs_target(static_cast<unsigned long>(no_of_points)),
+                    ys_target(static_cast<unsigned long>(no_of_points));
 
             double sum_x = 0.0,
                     sum_y = 0.0,
@@ -265,9 +262,14 @@ ParticleFastMatch::evaluateConfigs(Mat &templ, vector<AffineTransformation> &aff
         }
 
         distances[i] = score / no_of_points;
-        if(particleId >= 0) {
-            particles[particleId].setMinimalProbability(static_cast<float>(distances[i]));
-        }
+        /*if(particleId >= 0) {
+            if(particleId < particles.size()) {
+                particles[particleId].setMinimalProbability(static_cast<float>(distances[i]));
+            } else {
+                std::cerr << "Warning: Particle deos not exist? .. \n";
+                return false;
+            }
+        }*/
     });
 
 
@@ -285,10 +287,10 @@ vector<AffineTransformation> ParticleFastMatch::configsToAffine(vector<fast_matc
 
 
     /* These are for the calculations of affine transformed corners */
-    int r1x = 0.5 * (templ.cols - 1),
-            r1y = 0.5 * (templ.rows - 1),
-            r2x = 0.5 * (image.cols - 1),
-            r2y = 0.5 * (image.rows - 1);
+    int r1x = (templ.cols - 1) / 2,
+            r1y = (templ.rows - 1) / 2,
+            r2x = (image.cols - 1) / 2,
+            r2y = (image.rows - 1) / 2;
 
     Mat corners = (Mat_<float>(3, 4) << 1 - (r1x + 1), templ.cols - (r1x + 1), templ.cols - (r1x + 1), 1 - (r1x + 1),
             1 - (r1y + 1), 1 - (r1y + 1), templ.rows - (r1y + 1), templ.rows - (r1y + 1),
@@ -403,5 +405,9 @@ uint32_t ParticleFastMatch::particleCount() const {
 
 cv::Point2i ParticleFastMatch::getPredictedLocation() const {
     return particles.getWeightedSum();
+}
+
+void ParticleFastMatch::setScale(float min, float max, uint32_t searchSteps) {
+    particles.setScale(min, max, searchSteps);
 }
 

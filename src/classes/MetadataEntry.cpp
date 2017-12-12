@@ -6,11 +6,15 @@
 #include <opencv/cv.hpp>
 #include "fastmatch-dataset/MetadataEntry.hpp"
 
-cv::Mat MetadataEntry::getImage() {
+cv::Mat MetadataEntry::getImage() const {
     return cv::imread(imageFullPath, cv::IMREAD_GRAYSCALE);
 }
 
-cv::Mat MetadataEntry::getImageSharpened(bool smooth) {
+cv::Mat MetadataEntry::getImageColored() const {
+    return imageBuffer.clone();
+}
+
+cv::Mat MetadataEntry::getImageSharpened(bool smooth) const {
     cv::Mat im = getImage();
     cv::equalizeHist(im, im);
     if(smooth) {

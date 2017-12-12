@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <Eigen/Eigen>
 
 class Vector3d {
 protected:
@@ -24,6 +25,8 @@ public:
     double getZ() const;
 
     void setZ(double z);
+
+    Eigen::Vector3d toEigen();
 };
 
 

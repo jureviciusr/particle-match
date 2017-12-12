@@ -33,3 +33,7 @@ Vector3d::Vector3d() = default;
 
 Vector3d::Vector3d(double x, double y, double z) : x(x), y(y), z(z) {}
 
+Eigen::Vector3d Vector3d::toEigen() {
+    return {x, y, z};
+}
+

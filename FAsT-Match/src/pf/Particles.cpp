@@ -33,22 +33,6 @@ void Particles::init(cv::Point2i startLocation, const cv::Size mapSize,  double 
     normalize();
 }
 
-float Particles::getMinScale() const {
-    return minScale;
-}
-
-void Particles::setMinScale(float minScale) {
-    Particles::minScale = minScale;
-}
-
-float Particles::getMaxScale() const {
-    return maxScale;
-}
-
-void Particles::setMaxScale(float maxScale) {
-    Particles::maxScale = maxScale;
-}
-
 void Particles::addParticle(int x, int y) {
     emplace_back(x, y);
 }
@@ -106,11 +90,11 @@ std::vector<cv::Point> Particles::evaluate(cv::Mat image, cv::Mat templ, int no_
 
     double lowestDistance = +INFINITY;
     cv::Mat bestTrasform;
-    for (auto it = begin() ; it != end(); ++it) {
-        double distance = (*it).evaluate(image, templ, xs, ys);
+    for (auto &it : *this) {
+        double distance = it.evaluate(image, templ, xs, ys);
         if(distance < lowestDistance) {
             lowestDistance = distance;
-            bestTrasform = (*it).getBestTransform();
+            bestTrasform = it.getBestTransform();
         }
     }
     return Utilities::calcCorners(image.size(), templ.size(), bestTrasform);
@@ -159,6 +143,17 @@ cv::Point2i Particles::getWeightedSum() const {
         s_y += it.y * it.getWeight();
     }
     return cv::Point2i((int) s_x, (int) s_y);
+}
+
+void Particles::setScale(float min, float max, uint32_t steps) {
+    float delta = (std::abs(min - max)) / (float) (steps - 1);
+    s_initial = std::make_shared<std::vector<float>>();
+    for(uint32_t i = 0; i < steps; i++) {
+        s_initial->push_back(min + (i * delta));
+    }
+    for(auto& p : *this) {
+        p.setS_initial(s_initial);
+    }
 }
 
 

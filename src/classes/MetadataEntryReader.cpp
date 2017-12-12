@@ -4,6 +4,7 @@
 
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <opencv2/imgcodecs.hpp>
 #include "fastmatch-dataset/MetadataEntryReader.hpp"
 
 std::vector<std::string> MetadataEntryReader::parseString(const std::string &line) {
@@ -43,13 +44,16 @@ bool MetadataEntryReader::readNextEntry(MetadataEntry &metadataEntry) {
     // Reset the metadata
     metadataEntry = MetadataEntry();
     std::string line;
-    if(std::getline(in, line)) {
-        std::map<std::string, std::string> values = parseLine(header, line);
-        fillMetadata(metadataEntry, values);
-        return true;
-    } else {
-        return false;
+    while(std::getline(in, line)) {
+        if(lineCounter % skipRate == 0) {
+            std::map<std::string, std::string> values = parseLine(header, line);
+            fillMetadata(metadataEntry, values);
+            lineCounter++;
+            return true;
+        }
+        lineCounter++;
     }
+    return false;
 }
 
 void MetadataEntryReader::fillMetadata(MetadataEntry &entry, std::map<std::string, std::string> &values) {
@@ -87,8 +91,10 @@ void MetadataEntryReader::fillMetadata(MetadataEntry &entry, std::map<std::strin
             std::atof(values["SvoX"].c_str()),
             std::atof(values["SvoY"].c_str()),
             std::atof(values["SvoZ"].c_str())
-
     );
+    entry.imageBuffer = cv::imread(entry.imageFullPath);
+    entry.map = map->getImage();
+    entry.mapper = map;
 }
 
 void MetadataEntryReader::setMap(const std::string &mapFile, const std::string &mapDescription) {
@@ -97,4 +103,12 @@ void MetadataEntryReader::setMap(const std::string &mapFile, const std::string &
 
 const MapPtr &MetadataEntryReader::getMap() const {
     return map;
+}
+
+uint32_t MetadataEntryReader::getSkipRate() const {
+    return skipRate;
+}
+
+void MetadataEntryReader::setSkipRate(uint32_t skipRate) {
+    MetadataEntryReader::skipRate = skipRate;
 };

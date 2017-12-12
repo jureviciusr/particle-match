@@ -31,7 +31,14 @@ private:
 
     MapPtr map = nullptr;
 
+    uint32_t skipRate = 0;
+
+    uint64_t lineCounter = 0;
+
 public:
+    uint32_t getSkipRate() const;
+
+    void setSkipRate(uint32_t skipRate);
 
     bool openDirectory(const std::string &datasetDir);
 

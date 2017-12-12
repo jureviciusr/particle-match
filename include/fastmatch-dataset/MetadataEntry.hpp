@@ -8,6 +8,7 @@
 #include <opencv2/core/mat.hpp>
 #include "Quaternion.hpp"
 #include "Vector3d.hpp"
+#include "Map.hpp"
 
 class MetadataEntry {
 public:
@@ -25,8 +26,15 @@ public:
 
     Vector3d svoPose;
 
-    cv::Mat getImage();
-    cv::Mat getImageSharpened(bool smooth = false);
+    cv::Mat map;
+    cv::Mat imageBuffer;
+
+    cv::Mat getImage() const;
+    cv::Mat getImageSharpened(bool smooth = false) const;
+
+    cv::Mat getImageColored() const;
+
+    std::shared_ptr<Map> mapper;
 };
 
 
