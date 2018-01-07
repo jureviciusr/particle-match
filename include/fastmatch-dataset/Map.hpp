@@ -24,10 +24,14 @@ protected:
 public:
     bool isValid() const;
     const cv::Mat &getImage() const;
-    cv::Point2i toPixels(double latitude, double longitude) const;
-    void toCoords(const cv::Point2i& loc, double &latitude, double &longitude);
+    virtual cv::Point2i toPixels(double latitude, double longitude) const;
+    virtual void toCoords(const cv::Point2i& loc, double &latitude, double &longitude);
+
+    Map();
+
     Map(const std::string &mapFile, const std::string &mapDescription);
     cv::Mat subregion(const cv::Size& size, double latitude, double longitude, double heading, double scale = 1.0);
+    virtual bool isWithinMap(double latitude, double longitude);
 
 };
 

@@ -15,8 +15,8 @@ int main(int ac, char *av[]) {
     po::options_description desc("Allowed options");
     desc.add_options()
             ("map-image,m", po::value<std::string>(), "Path to map image")
-            ("map-description,D", po::value<std::string>(), "Path to map description text file")
             ("dataset,d", po::value<std::string>(), "Path to dataset directory")
+            ("skip-rate,s", po::value<uint32_t>()->default_value(60), "Skip number of dataset entries each iteration")
             ("help", "produce help message");
 
     po::variables_map vm;
@@ -38,18 +38,13 @@ int main(int ac, char *av[]) {
     bool pfInitialized = false;
     std::shared_ptr<ParticleFastMatch> pfm;
 
-    // Declare window to preview the image
-    cv::namedWindow("Preview", CV_WINDOW_NORMAL);
-
     // Declare reader
     MetadataEntryReader reader;
     ParticleFilterWorkspace pf;
-    if(vm.count("map-image") && vm.count("map-description")) {
-
+    if(vm.count("map-image")) {
         auto mapImage = vm["map-image"].as<std::string>();
-        auto mapDescription = vm["map-description"].as<std::string>();
-        if(fs::exists(mapImage) && fs::exists(mapDescription)) {
-            reader.setMap(mapImage, mapDescription);
+        if(fs::exists(mapImage)) {
+            reader.setMap(mapImage);
         } else {
             std::cerr << "Map configuration files were not found\n";
         }
@@ -57,12 +52,11 @@ int main(int ac, char *av[]) {
             std::cerr << "Map configuration is corrupted!\n";
         }
     }
-    reader.setSkipRate(10);
+    reader.setSkipRate(vm["skip-rate"].as<uint32_t>());
     // Declare path and sanity check
     fs::path datasetPath(vm["dataset"].as<std::string>());
     if(fs::exists(datasetPath / "metadata.csv")) {
         if(reader.openDirectory(datasetPath.string())) {
-
             // Parse line by line into the structure
             MetadataEntry entry;
             while (reader.readNextEntry(entry)) {
@@ -73,16 +67,7 @@ int main(int ac, char *av[]) {
                     pf.update(entry);
                 }
                 cv::Mat image = entry.getImageColored();
-                pf.preview(entry);
-
-                // Preview the image
-                cv::imshow("Preview", image);
-
-                // Show at ~50 FPS
-                int key = cv::waitKey(20);
-
-                // Break the cycle on ESC key
-                if(key == 27) {
+                if(!pf.preview(entry, image)) {
                     break;
                 }
             }

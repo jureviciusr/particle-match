@@ -9,7 +9,7 @@
 #include <boost/tokenizer.hpp>
 #include <fstream>
 #include "MetadataEntry.hpp"
-#include "Map.hpp"
+#include "GeotiffMap.hpp"
 
 
 class MetadataEntryReader {
@@ -29,7 +29,7 @@ private:
 
     void fillMetadata(MetadataEntry& entry, std::map<std::string, std::string>& values);
 
-    MapPtr map = nullptr;
+    GeoMapPtr map = nullptr;
 
     uint32_t skipRate = 0;
 
@@ -44,9 +44,9 @@ public:
 
     bool readNextEntry(MetadataEntry& metadataEntry);
 
-    void setMap(const std::string& mapFile, const std::string& mapDescription);
+    void setMap(const std::string& mapFile);
 
-    const MapPtr &getMap() const;
+    const MapPtr getMap() const;
 
 };
 

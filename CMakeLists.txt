@@ -12,6 +12,7 @@ find_package( OpenCV REQUIRED )
 find_package( map_library REQUIRED )
 find_package( GeographicLib REQUIRED )
 find_package( Eigen3 REQUIRED )
+find_package(GDAL REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${map_library_INCLUDE_DIR})
@@ -44,13 +45,15 @@ add_library(datasetreader SHARED
         include/fastmatch-dataset/Quaternion.hpp
         include/fastmatch-dataset/Vector3d.hpp
         include/fastmatch-dataset/Map.hpp
+        include/fastmatch-dataset/GeotiffMap.hpp
         src/classes/MetadataEntryReader.cpp
         src/classes/MetadataEntry.cpp
         src/classes/Quaternion.cpp
         src/classes/Vector3d.cpp
         src/classes/Map.cpp
+        src/classes/GeotiffMap.cpp
         )
-target_link_libraries(datasetreader ${OpenCV_LIBS} ${Boost_LIBRARIES} ${GeographicLib_LIBRARY})
+target_link_libraries(datasetreader ${OpenCV_LIBS} ${Boost_LIBRARIES} ${GeographicLib_LIBRARY} ${GDAL_LIBRARY})
 
 add_library(fastmatch SHARED ${SOURCES})
 target_link_libraries(fastmatch ${OpenCV_LIBS} ${Boost_LIBRARIES} tbb)

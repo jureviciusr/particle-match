@@ -28,7 +28,6 @@ void ConfigVisualizer::visualiseConfigs(cv::Mat image, std::vector<fast_match::M
 }
 
 ConfigVisualizer::ConfigVisualizer() {
-    cv::namedWindow("Preview", CV_WINDOW_NORMAL);
 }
 
 void ConfigVisualizer::visualiseParticles(cv::Mat image, Particles particles) {

@@ -57,12 +57,12 @@ const cv::Mat &Map::getImage() const {
 cv::Point2i Map::toPixels(double latitude, double longitude) const {
     return cv::Point2i(
             static_cast<int>(
-                    (std::abs(geoRegion[0].Longitude() - longitude) / std::abs(geoRegion[0].Longitude() - geoRegion[1].Longitude()))
-                    * (double) dimensions.width
+                    ((geoRegion[0].Longitude() - longitude) / (geoRegion[0].Longitude() - geoRegion[1].Longitude()))
+                    * (double) image.cols
             ),
             static_cast<int>(
-                    (geoRegion[0].Latitude() - latitude) / (geoRegion[0].Latitude() - geoRegion[1].Latitude())
-                    * (double) dimensions.height
+                    ((geoRegion[0].Latitude() - latitude) / (geoRegion[0].Latitude() - geoRegion[1].Latitude()))
+                    * (double) image.rows
             )
     );
 }
@@ -76,17 +76,44 @@ void Map::toCoords(const cv::Point2i &loc, double &latitude, double &longitude) 
 
 cv::Mat Map::subregion(const cv::Size &size, double latitude, double longitude, double heading, double scale) {
     float imangle = std::atan(((float) size.width) / ((float) size.height));
-    auto roiReserver = (int) std::ceil(size.width / std::sin(imangle));
+    auto roiReserver = (int) (std::ceil(((float) size.width / scale) / std::sin(imangle)) * 1.1);
     int centerLoc = roiReserver / 2;
     // Cut part of map
     cv::Mat output(size, image.type());
     cv::Point position = toPixels(latitude, longitude);
     cv::Mat region = image(cv::Rect(position.x - centerLoc, position.y - centerLoc, roiReserver, roiReserver));
-    cv::Rect rotationRoi(centerLoc - (size.width / 2), centerLoc - (size.height / 2), size.width, size.height);
-    cv::Mat view(region.size(), region.type());
-    cv::Mat rot_mat = cv::getRotationMatrix2D(cv::Point(centerLoc, centerLoc), heading, scale);
-    cv::warpAffine(region, view, rot_mat, cv::Size(roiReserver, roiReserver));// cv::Size(roiReserver, roiReserver));
-    cv::Mat rotated = view(rotationRoi);
-    cv::resize(rotated, output, size);
-    return output;
+    cv::Rect rotationRoi(
+            static_cast<int>(((float) centerLoc * scale) - (size.width / 2)),
+            static_cast<int>(((float) centerLoc * scale) - (size.height / 2)),
+            size.width,
+            size.height
+    );
+    cv::Size reservedSize(
+            static_cast<int>(roiReserver * scale),
+            static_cast<int>(roiReserver * scale)
+    );
+    cv::Mat view(reservedSize, region.type());
+    auto center = cv::Point2f(
+            (float) region.cols / 2.f,
+            (float) region.rows / 2.f
+    );
+    cv::Mat rot_mat = cv::getRotationMatrix2D(
+            center,
+            heading,
+            scale
+    );
+    rot_mat.at<double>(0, 2) += std::abs(1 - (std::cos((imangle * 180.0) / M_PI))) * center.x;
+    rot_mat.at<double>(1, 2) += std::abs(1 - (std::cos((imangle * 180.0) / M_PI))) * center.y;
+    cv::warpAffine(region, view, rot_mat, cv::Size(reservedSize));
+    return view(rotationRoi);
 }
+
+bool Map::isWithinMap(double latitude, double longitude) {
+    double minlat = std::min(geoRegion[0].Latitude(), geoRegion[1].Latitude());
+    double maxlat = std::max(geoRegion[0].Latitude(), geoRegion[1].Latitude());
+    double minlon = std::min(geoRegion[0].Longitude(), geoRegion[1].Longitude());
+    double maxlon = std::max(geoRegion[0].Longitude(), geoRegion[1].Longitude());
+    return latitude >= minlat && latitude <= maxlat && longitude >= minlon && longitude <= maxlon;
+}
+
+Map::Map() = default;

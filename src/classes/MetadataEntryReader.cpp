@@ -97,11 +97,12 @@ void MetadataEntryReader::fillMetadata(MetadataEntry &entry, std::map<std::strin
     entry.mapper = map;
 }
 
-void MetadataEntryReader::setMap(const std::string &mapFile, const std::string &mapDescription) {
-    map = std::make_shared<Map>(mapFile, mapDescription);
+void MetadataEntryReader::setMap(const std::string &mapFile) {
+    map = std::make_shared<GeotiffMap>();
+    map->open(mapFile);
 }
 
-const MapPtr &MetadataEntryReader::getMap() const {
+const MapPtr MetadataEntryReader::getMap() const {
     return map;
 }
 

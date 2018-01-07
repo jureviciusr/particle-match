@@ -17,6 +17,7 @@ protected:
     cv::Mat map;
     std::vector<cv::Point> corners;
     cv::Mat bestTransform;
+    float currentScale = 0.0;
 
     std::shared_ptr<GeographicLib::LocalCartesian> svoCoordinates;
 
@@ -32,7 +33,7 @@ public:
 
     void update(const MetadataEntry& metadata);
 
-    void preview(const MetadataEntry& metadata) const;
+    bool preview(const MetadataEntry& metadata, cv::Mat image) const;
 };
 
 

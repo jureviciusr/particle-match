@@ -37,6 +37,8 @@ protected:
 public:
     Quaternion(double x, double y, double z, double w);
 
+    Quaternion(const Eigen::Quaterniond& eq);
+
     Quaternion();
 };
 

@@ -59,7 +59,7 @@ const vector<fast_match::MatchConfig> & Particle::getConfigs(int id) {
 }
 
 void Particle::propagate(const cv::Point2f &movement) {
-    double alpha = 4.0;
+    double alpha = 2.0;
     x += movement.x + ((Utilities::gausian_noise(1)) * ((movement.x == 0 ? 5 : movement.x) * alpha));
     y += movement.y + ((Utilities::gausian_noise(1)) * ((movement.y == 0 ? 5 : movement.y) * alpha));
     updateConfigs();
