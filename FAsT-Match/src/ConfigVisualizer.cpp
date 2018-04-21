@@ -4,9 +4,9 @@
 
 #include "ConfigVisualizer.hpp"
 
-void ConfigVisualizer::visualiseConfigs(cv::Mat image, std::vector<fast_match::MatchConfig> configs) {
+void ConfigVisualizer::visualiseConfigs(cv::Mat image, const std::vector<fast_match::MatchConfig>& configs) {
     std::vector<cv::Point2i> drawnPoints;
-    for(auto config : configs) {
+    for(const auto& config : configs) {
         cv::Point2i curPoint(cv::Point(
                 (int) config.getTranslateX() + (image.cols / 2),
                 (int) config.getTranslateY() + (image.rows / 2)
@@ -27,13 +27,11 @@ void ConfigVisualizer::visualiseConfigs(cv::Mat image, std::vector<fast_match::M
     cv::waitKey(1000);
 }
 
-ConfigVisualizer::ConfigVisualizer() {
-}
+ConfigVisualizer::ConfigVisualizer() = default;
 
-void ConfigVisualizer::visualiseParticles(cv::Mat image, Particles particles) {
+void ConfigVisualizer::visualiseParticles(cv::Mat image, const Particles& particles) {
     //cv::Mat preview = image.clone();
-    Particles::iterator iter;
-    for(iter = particles.begin(); iter != particles.end(); iter++) {
+    for(auto iter = particles.rbegin(); iter != particles.rend(); iter++) {
         cv::Point2i curPoint(
                 (*iter).x,
                 (*iter).y

@@ -11,8 +11,8 @@
 class ConfigVisualizer {
 public:
     ConfigVisualizer();
-    void visualiseConfigs(cv::Mat image, std::vector<fast_match::MatchConfig> configs);
-    void visualiseParticles(cv::Mat image, Particles particles);
+    void visualiseConfigs(cv::Mat image, const std::vector<fast_match::MatchConfig>& configs);
+    void visualiseParticles(cv::Mat image, const Particles& particles);
 
 };
 

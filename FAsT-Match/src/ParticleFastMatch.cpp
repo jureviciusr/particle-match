@@ -94,7 +94,7 @@ vector<Point2f> ParticleFastMatch::filterParticles() {
 */
 
 
-vector<Point> ParticleFastMatch::filterParticles(const cv::Point2f& movement, cv::Mat& bestTransform) {
+vector<Point> ParticleFastMatch::filterParticlesAffine(const cv::Point2f &movement, cv::Mat &bestTransform) {
     int i = 0;
     Particles newParticles = {};
     int     support_particles = 0,
@@ -110,23 +110,6 @@ vector<Point> ParticleFastMatch::filterParticles(const cv::Point2f& movement, cv
         // Predict next state
         newParticles[particleIndex].propagate(movement);
         // Calculate particle belief
-        double probability;
-        cv::Mat transform = evaluateParticle(newParticles[particleIndex], i, probability);
-        i++;
-        if(probability < bestProbability) {
-            bestTransform = transform;
-            bestProbability = probability;
-        }
-        cv::Mat bestView = Utilities::extractMapPart(image, templ.size(), transform);
-        float ccoef = Utilities::calculateCorrCoeff(bestView, templ);
-        float prob;
-        float lowBound = 0.2f;
-        if(ccoef > 0.f) {
-            prob = lowBound + (ccoef * (1 - lowBound));
-        } else {
-            prob = lowBound - (std::abs(ccoef) * lowBound);
-        }
-        newParticles[particleIndex].setProbability(prob/*((ccoef + 1) / 2.f)*/);
 
         std::string bin = newParticles[particleIndex].serialize(binSize);
         particleIndex++;
@@ -148,6 +131,27 @@ vector<Point> ParticleFastMatch::filterParticles(const cv::Point2f& movement, cv
             }
         }
     } while (newParticles.size() < samplingCount);
+
+    tbb::parallel_for(0, (int) newParticles.size(), 1, [&] (int ip) {
+        double probability;
+        cv::Mat transform = evaluateParticle(newParticles[ip], ip, probability);
+        //i++;
+        if(probability < bestProbability) {
+            bestTransform = transform;
+            bestProbability = probability;
+        }
+        cv::Mat bestView = Utilities::extractWarpedMapPart(image, templ.size(), transform);
+        float ccoef = Utilities::calculateCorrCoeff(bestView, templ);
+        float prob;
+        float lowBound = 0.2f;
+        if(ccoef > 0.f) {
+            prob = lowBound + (ccoef * (1 - lowBound));
+        } else {
+            prob = lowBound - (std::abs(ccoef) * lowBound);
+        }
+        newParticles[ip].setProbability(prob/*((ccoef + 1) / 2.f)*/);
+    });
+
     particles.assign(newParticles.begin(), newParticles.end());
     particles.normalize();
     return Utilities::calcCorners(image.size(), templ.size(), bestTransform);
@@ -350,12 +354,12 @@ void ParticleFastMatch::initPaddedImage() {
 
 Mat ParticleFastMatch::evaluateParticle(Particle& particle, int id, double &bestProbability) {
     std::vector<fast_match::MatchConfig> pConfigs = particle.getConfigs(id);
-    vector<AffineTransformation> affines = configsToAffine(pConfigs, insiders);
+    vector<AffineTransformation> affines = configsToAffine(pConfigs, particle.insiders);
     /* Filter out configurations that fall outside of the boundaries */
     /* the internal logic of configsToAffine has more information */
     std::vector<fast_match::MatchConfig> temp_configs;
-    for (int i = 0; i < insiders.size(); i++)
-        if (insiders[i] == true)
+    for (int i = 0; i < particle.insiders.size(); i++)
+        if (particle.insiders[i] == true)
             temp_configs.push_back(pConfigs[i]);
     pConfigs = temp_configs;
 
@@ -409,5 +413,83 @@ cv::Point2i ParticleFastMatch::getPredictedLocation() const {
 
 void ParticleFastMatch::setScale(float min, float max, uint32_t searchSteps) {
     particles.setScale(min, max, searchSteps);
+}
+
+std::vector<cv::Point> ParticleFastMatch::filterParticles(const cv::Point2f &movement, cv::Mat &bestTransform) {
+    int i = 0;
+    Particles newParticles = {};
+    int     support_particles = 0,
+            samplingCount = minParticles;
+    std::vector < std::string > bins;
+    double bestProbability = +INFINITY;
+    std::sort(particles.begin(), particles.end(), std::less<>());
+    unsigned long particleIndex = 0;
+    do {
+        // Sample previous particle from previous belief
+        newParticles.addParticle(particles.sample());
+        // Predict next state
+        newParticles[particleIndex].propagate(movement);
+        // Calculate particle belief
+        //double probability;
+        //cv::Mat transform = evaluateParticle(newParticles[particleIndex], i, probability);
+        i++;
+        /*if(probability < bestProbability) {
+            bestTransform = transform;
+            bestProbability = probability;
+        }*/
+
+        std::string bin = newParticles[particleIndex].serialize(binSize);
+        particleIndex++;
+        if (!(std::find(bins.begin(), bins.end(), bin) != bins.end())) {
+            // Mark bin as taken
+            bins.push_back(bin);
+            // Update number with support
+            support_particles++;
+            if (support_particles >= 2) {
+                // update desired number
+                int k = support_particles - 1;
+                k = (int) ceil(k / (2 * kld_error) * pow(1 - 2 / (9.0 * k) + sqrt(2 / (9.0 * k)) * zvalue, 3));
+                if (k > samplingCount) {
+                    samplingCount = k;
+                }
+                if (samplingCount < minParticles) {
+                    samplingCount = minParticles;
+                }
+            }
+        }
+    } while (newParticles.size() < samplingCount);
+    //for (particleIndex = 0; particleIndex < newParticles.size(); particleIndex++) {
+    tbb::parallel_for(0, (int) newParticles.size(), 1, [&] (int ip) {
+        cv::Mat bestView = Utilities::extractMapPart(image, templ.size(),
+                                                     newParticles[ip].toPoint(),
+                                                     newParticles[ip].getDirectionDegrees(),
+                                                     1.f / newParticles[ip].getScale()
+        );
+        float ccoef = Utilities::calculateCorrCoeff(bestView, templ);
+        float prob;
+        float lowBound = 0.2f;
+        if(ccoef > 0.f) {
+            prob = lowBound + (ccoef * (1 - lowBound));
+        } else {
+            prob = lowBound - (std::abs(ccoef) * lowBound);
+        }
+        newParticles[ip].setProbability(prob/*((ccoef + 1) / 2.f)*/);
+
+    });
+
+    particles.assign(newParticles.begin(), newParticles.end());
+    particles.normalize();
+    //return Utilities::calcCorners(image.size(), templ.size(), bestTransform);
+    //bestTransform = particles.front().staticTransformation();
+    //return Utilities::calcCorners(image.size(), templ.size(), bestTransform);
+    return {};
+}
+
+cv::Mat ParticleFastMatch::getBestParticleView(cv::Mat map) {
+    return Utilities::extractMapPart(map, templ.size(),
+                                                 particles.back().toPoint(),
+                                                 particles.back().getDirectionDegrees(),
+                                                 1.f / particles.back().getScale());
+
 }
 

@@ -97,9 +97,9 @@ cv::Mat Utilities::getMapRoiMask(const cv::Size &image_size, const cv::Size &tem
 }
 
 
-cv::Mat Utilities::extractMapPart(
+cv::Mat Utilities::extractWarpedMapPart(
         cv::InputArray map,
-        const cv::Size& templ_size,
+        const cv::Size &templ_size,
         const cv::Mat &affine
 ) {
     cv::Mat T = cv::Mat::zeros(cv::Size(3, 2), CV_32F);
@@ -273,5 +273,24 @@ cv::Point Utilities::calculateLocationInMap(
             (int) (a11 * ((templPoint.x + 1)- (r1x + 1)) + a12 * ((templPoint.y + 1) - (r1y + 1)) + (r2x + 1) + a13),
             (int) (a21 * ((templPoint.x + 1) - (r1x + 1)) + a22 * ((templPoint.y + 1) - (r1y + 1)) + (r2y + 1) + a23)
     );
+}
+
+cv::Mat Utilities::extractMapPart(const cv::Mat &map,
+                                  const cv::Size &size, const cv::Point &position, double angle, float scale) {
+    // Calculate how much data to crop out
+    cv::Mat image;
+    float imangle = std::atan(((float) size.width) / ((float) size.height));
+    int roiReserver = (int) std::ceil(size.width / std::sin(imangle));
+    int centerLoc = roiReserver / 2;
+    // Cut part of map
+    cv::Mat region = map(cv::Rect(position.x - centerLoc, position.y - centerLoc, roiReserver, roiReserver));
+    // Prepare cropping after rotation
+    cv::Rect rotationRoi(centerLoc - (size.width / 2), centerLoc - (size.height / 2), size.width, size.height);
+    // Actual rotation
+    cv::Mat view(region.size(), region.type());
+    cv::Mat rot_mat = cv::getRotationMatrix2D(cv::Point(centerLoc, centerLoc), angle, scale);
+    cv::warpAffine(region, view, rot_mat, cv::Size(roiReserver, roiReserver));// cv::Size(roiReserver, roiReserver));
+    view(rotationRoi).copyTo(image);
+    return image;
 }
 

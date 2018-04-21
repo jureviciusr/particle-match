@@ -93,14 +93,21 @@ int main(int argc, const char *argv[]) {
         Particle::setDirection(params[2]);
         Mat map = image.clone();
         fast_match.setTemplate(templ);
-        auto corners = fast_match.filterParticles(movement, bestTransform);
+        cv::Mat bestView;
+        std::vector<cv::Point> corners;
+        if(true) {
+            corners = fast_match.filterParticles(movement, bestTransform);
+        } else {
+            corners = fast_match.filterParticlesAffine(movement, bestTransform);
+            bestView = Utilities::extractWarpedMapPart(map, templ.size(), bestTransform);
+        }
         double  sumX = 0.,
                 sumY = 0.;
         for(const auto& corner : corners) {
             sumX += corner.x;
             sumY += corner.y;
         }
-        cv::Mat bestView = Utilities::extractMapPart(map, templ.size(), bestTransform);
+
         cv::Point2i bestParticleLocation((int) sumX / 4, (int) sumY / 4);
         cv::Point2i prediction = fast_match.getPredictedLocation();
 

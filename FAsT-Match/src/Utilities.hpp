@@ -29,7 +29,10 @@ public:
 
     static cv::Mat getMapRoiMask(const cv::Size &image_size, const cv::Size &templ_size, cv::Mat &affine);
 
-    static cv::Mat extractMapPart(const cv::_InputArray &map, const cv::Size &templ_size, const cv::Mat &affine);
+    static cv::Mat extractWarpedMapPart(const cv::_InputArray &map, const cv::Size &templ_size, const cv::Mat &affine);
+
+    static cv::Mat extractMapPart(const cv::Mat &map, const cv::Size &size, const cv::Point &position,
+                                  double angle, float scale);
 
     static double calculateCorrelation(cv::Mat i1, cv::Mat i2);
 

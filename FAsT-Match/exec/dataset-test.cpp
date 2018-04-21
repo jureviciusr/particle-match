@@ -6,6 +6,7 @@
 #include <fastmatch-dataset/MetadataEntryReader.hpp>
 #include <opencv/cv.hpp>
 #include <src/ParticleFastMatch.hpp>
+#include <chrono>
 #include "ParticleFilterWorkspace.hpp"
 
 namespace fs = boost::filesystem;
@@ -16,7 +17,9 @@ int main(int ac, char *av[]) {
     desc.add_options()
             ("map-image,m", po::value<std::string>(), "Path to map image")
             ("dataset,d", po::value<std::string>(), "Path to dataset directory")
-            ("skip-rate,s", po::value<uint32_t>()->default_value(60), "Skip number of dataset entries each iteration")
+            ("skip-rate,s", po::value<uint32_t>()->default_value(10), "Skip number of dataset entries each iteration")
+            ("write-images,w", "Write preview images to disk")
+            ("affine-matching,a", "Perform affine image matching when evaluating particles")
             ("help", "produce help message");
 
     po::variables_map vm;
@@ -35,14 +38,18 @@ int main(int ac, char *av[]) {
         return 1;
     }
 
+    std::stringstream output;
+
     bool pfInitialized = false;
     std::shared_ptr<ParticleFastMatch> pfm;
 
     // Declare reader
     MetadataEntryReader reader;
     ParticleFilterWorkspace pf;
+    std::string mapName;
     if(vm.count("map-image")) {
         auto mapImage = vm["map-image"].as<std::string>();
+        mapName = fs::path(mapImage).stem().string();
         if(fs::exists(mapImage)) {
             reader.setMap(mapImage);
         } else {
@@ -55,11 +62,29 @@ int main(int ac, char *av[]) {
     reader.setSkipRate(vm["skip-rate"].as<uint32_t>());
     // Declare path and sanity check
     fs::path datasetPath(vm["dataset"].as<std::string>());
+    std::ofstream outFile;
     if(fs::exists(datasetPath / "metadata.csv")) {
+        bool writeImages = (vm.count("write-images") > 0);
+        char mbstr[100];
+        std::string time;
+        std::time_t t = std::time(nullptr);
+        if (std::strftime(mbstr, sizeof(mbstr), "%Y%m%d-%H%M%S", std::localtime(&t))) {
+            time = std::string(mbstr);
+        }
+        fs::path dir = datasetPath / "results" / (time + (mapName.empty() ? "" : "-" + mapName));
+        fs::create_directories(dir);
+        outFile.open((dir / "data.csv").string());
+        if(writeImages) {
+            pf.setWriteImageToDisk(writeImages);
+            pf.setOutputDirectory(dir.string());
+        }
         if(reader.openDirectory(datasetPath.string())) {
+            output << "\"Iteration\",\"ImageName\",\"ParticleCount\",\"PosX\",\"PosY\",\"Distance\",\"SVODistance\"\n";
             // Parse line by line into the structure
             MetadataEntry entry;
+            int iteration = 0;
             while (reader.readNextEntry(entry)) {
+                output << iteration++ << ",\"" << entry.imageFileName << "\",";
                 if(!pfInitialized) {
                     pf.initialize(entry);
                     pfInitialized = true;
@@ -67,9 +92,17 @@ int main(int ac, char *av[]) {
                     pf.update(entry);
                 }
                 cv::Mat image = entry.getImageColored();
-                if(!pf.preview(entry, image)) {
+                if(!pf.preview(entry, image, output)) {
                     break;
                 }
+                if(outFile.is_open()) {
+                    outFile << output.str() << std::endl;
+                } else {
+                    std::cout << output.str() << "\n";
+                }
+                // Clear the output stream, it is already dumped
+                output.str("");
+                output.clear();
             }
         } else {
             std::cerr << "Failed to open metadata file in the dataset\n";

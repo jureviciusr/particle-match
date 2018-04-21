@@ -13,7 +13,9 @@ private:
     std::shared_ptr<std::vector<float>> s_initial = std::make_shared<std::vector<float>>();
     static float r_step;
     static double direction;
-
+public:
+    static double getDirection();
+    std::vector<bool> insiders;
 
 protected:
     std::vector<fast_match::MatchConfig> configs;
@@ -52,7 +54,13 @@ public:
     void propagate(const cv::Point2f& movement);
     void updateConfigs();
     static void setMapDimensions(const cv::Size& dims);
+    cv::Point2i getLocationInMapCoords() const;
+    cv::Point2i toPoint() const;
+    cv::Mat staticTransformation() const;
 
+    double getDirectionDegrees() const;
+
+    float getScale() const;
 };
 
 

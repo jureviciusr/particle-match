@@ -3,19 +3,22 @@
 //
 
 #include <src/Utilities.hpp>
+#include <boost/filesystem/path.hpp>
 #include "ParticleFilterWorkspace.hpp"
+
+namespace fs = boost::filesystem;
 
 void ParticleFilterWorkspace::initialize(const MetadataEntry &metadata) {
     direction = metadata.imuOrientation.toRPY().getZ();
     Particle::setDirection(direction);
-    initialPosition = metadata.mapLocation;
+    svoCurPosition = metadata.mapLocation;
     svoCoordinates = std::make_shared<GeographicLib::LocalCartesian>(
             metadata.latitude,
             metadata.longitude,
             metadata.altitude
     );
     pfm = std::make_shared<ParticleFastMatch>(
-            initialPosition, // startLocation
+            svoCurPosition, // startLocation
             metadata.map.size(), // mapSize
             500, // radius
             .1f, // epsilon
@@ -31,6 +34,7 @@ void ParticleFilterWorkspace::initialize(const MetadataEntry &metadata) {
     map = metadata.map;
     updateScale(1.0, static_cast<float>(metadata.altitude), 640);
     cv::namedWindow("Map", CV_WINDOW_NORMAL);
+    startLocation = pfm->getPredictedLocation();
     //cv::namedWindow("BestTransform", CV_WINDOW_NORMAL);
 }
 
@@ -41,13 +45,23 @@ void ParticleFilterWorkspace::update(const MetadataEntry &metadata) {
     Particle::setDirection(direction);
     cv::Mat templ = metadata.getImageColored();
     pfm->setTemplate(templ);
-    corners = pfm->filterParticles(movement, bestTransform);
-    cv::Mat bestView = Utilities::extractMapPart(metadata.map, templ.size(), bestTransform);
-    cv::Point2i prediction = pfm->getPredictedLocation();
+    if(affineMatching) {
+        pfm->filterParticles(movement, bestTransform);
+        bestView = pfm->getBestParticleView(metadata.map);
+        //cv::Mat bestView = Utilities::extractWarpedMapPart(metadata.map, templ.size(), bestTransform);
+    } else {
+        corners = pfm->filterParticlesAffine(movement, bestTransform);
+        cv::Mat bestView = Utilities::extractWarpedMapPart(metadata.map, templ.size(), bestTransform);
+    }
+   // cv::Point2i prediction = pfm->getPredictedLocation();
 }
 
-bool ParticleFilterWorkspace::preview(const MetadataEntry &metadata, cv::Mat planeView) const {
+bool ParticleFilterWorkspace::preview(const MetadataEntry &metadata, cv::Mat planeView, std::stringstream& stringOutput)
+const {
     cv::Point2i prediction = pfm->getPredictedLocation();
+    cv::Point2i relativeLocation = prediction - startLocation;
+    stringOutput << pfm->particleCount() << ",";
+    stringOutput << relativeLocation.x << "," << relativeLocation.y << ",";
     cv::Mat image = map.clone();
     pfm->visualizeParticles(image);
     /*std::cout << std::setprecision(9) << "SVO COORDS: " << lat << ", " << lon << "\n";
@@ -88,7 +102,8 @@ bool ParticleFilterWorkspace::preview(const MetadataEntry &metadata, cv::Mat pla
 
 
     if(!bestTransform.empty()) {
-        cv::Mat best = Utilities::extractMapPart(metadata.map, metadata.getImage().size(), bestTransform);
+        std::cout << bestTransform << "\n";
+        cv::Mat best = Utilities::extractWarpedMapPart(metadata.map, metadata.getImage().size(), bestTransform);
         auto bestParticleROI = cv::Rect(
                 (mapDisplay.cols - 1) - best.cols,
                 planeView.rows,
@@ -101,15 +116,35 @@ bool ParticleFilterWorkspace::preview(const MetadataEntry &metadata, cv::Mat pla
                     cv::Point(bestParticleROI.x + 10, bestParticleROI.y + textOffset),
                     fontFace, fontScale, Scalar::all(255), thickness, 8);
     }
-
+    if(!bestView.empty()) {
+        auto bestParticleROI = cv::Rect(
+                (mapDisplay.cols - 1) - bestView.cols,
+                planeView.rows,
+                bestView.cols,
+                bestView.rows
+        );
+        bestView.copyTo(mapDisplay(bestParticleROI));
+        cv::rectangle(mapDisplay, bestParticleROI, Scalar(0,0,255));
+        cv::putText(mapDisplay, "Best particle view",
+                    cv::Point(bestParticleROI.x + 10, bestParticleROI.y + textOffset),
+                    fontFace, fontScale, Scalar::all(255), thickness, 8);
+    }
     double distance = sqrt(pow(metadata.mapLocation.x - prediction.x, 2) + pow(metadata.mapLocation.y - prediction.y, 2));
-    std::cout << "Location error = " << distance << "\n";
-    cv::putText(mapDisplay, "Location error = " + std::to_string(distance * currentScale) + " m",
+    // svoCurPosition contains latest location of the SVO
+    double svoDistance = sqrt(pow(metadata.mapLocation.x - svoCurPosition.x, 2) +
+                                      pow(metadata.mapLocation.y - svoCurPosition.y, 2));
+    stringOutput << std::fixed << std::setprecision(2) << distance << "," << svoDistance;
+    cv::putText(mapDisplay, "Location error = " + std::to_string(distance) + " m",
                 cv::Point(10, textOffset), fontFace, fontScale, Scalar::all(255), thickness, 8);
-
+    if(writeImageToDisk) {
+        static int counter = 0;
+        char integers[6];
+        std::snprintf(integers, 6, "%05d", counter++);
+        std::string filename = "preview_" + std::string(integers) + ".jpg";
+        fs::path p(outputDirectory);
+        cv::imwrite((p / filename).string(), mapDisplay);
+    }
     cv::imshow("Map", mapDisplay);
-    static int counter = 0;
-    cv::imwrite("images/test-1/preview_" + std::to_string(counter++) + ".jpg", mapDisplay);
     int key = cv::waitKey(10);
     // Break the cycle on ESC key
     return key != 27;
@@ -137,17 +172,42 @@ void ParticleFilterWorkspace::updateScale(float hfov, float altitude, uint32_t i
 
 cv::Point ParticleFilterWorkspace::getMovementFromSvo(const MetadataEntry &metadata) {
     double lat, lon, h;
-    // I had to reverse both X and Y to achieve good combination
+    // I had to negate both X and Y to achieve good combination
     svoCoordinates->Reverse(
-            -metadata.svoPose.getX(),
-            -metadata.svoPose.getY(),
+            metadata.svoPose.getX(),
+            metadata.svoPose.getY(),
             metadata.svoPose.getZ(),
             lat,
             lon,
             h
     );
     cv::Point curLoc = metadata.mapper->toPixels(lat, lon);
-    cv::Point movement = curLoc - initialPosition;
-    initialPosition = curLoc;
+    cv::Point movement = curLoc - svoCurPosition;
+
+    // Don't use direction from SVO, it may be misleading, just use the distance from odometry
+    // and direction from compass which is way more reliable.
+    float distance = static_cast<float>(std::sqrt(std::pow(movement.x, 2.f) + std::pow(movement.y, 2.f)));
+    movement = cv::Point2f(
+            static_cast<float>(std::sin(direction) * distance),
+            static_cast<float>(-std::cos(direction) * distance)
+    );
+
+    svoCurPosition = curLoc;
     return movement;
+}
+
+void ParticleFilterWorkspace::setWriteImageToDisk(bool writeImageToDisk) {
+    ParticleFilterWorkspace::writeImageToDisk = writeImageToDisk;
+}
+
+void ParticleFilterWorkspace::setOutputDirectory(const string &outputDirectory) {
+    ParticleFilterWorkspace::outputDirectory = outputDirectory;
+}
+
+bool ParticleFilterWorkspace::isAffineMatching() const {
+    return affineMatching;
+}
+
+void ParticleFilterWorkspace::setAffineMatching(bool affineMatching) {
+    ParticleFilterWorkspace::affineMatching = affineMatching;
 }

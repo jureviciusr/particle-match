@@ -22,7 +22,9 @@ public:
             bool use_gaussian = false);
     void visualizeParticles(cv::Mat image);
 
-    vector<Point> filterParticles(const cv::Point2f& movement, cv::Mat& bestTransform);
+    vector<Point> filterParticlesAffine(const cv::Point2f &movement, cv::Mat &bestTransform);
+
+    vector<Point> filterParticles(const cv::Point2f &movement, cv::Mat &bestTransform);
 
     cv::Mat evaluateParticle(Particle& particle, int id, double &bestProbability);
 
@@ -46,7 +48,6 @@ protected:
     cv::Mat xs, ys, paddedCurrentImage;
 
     int minParticles = 50;
-    cv::Mat map;
 
     float zvalue;
     std::vector<float> ztable;
@@ -72,6 +73,8 @@ public:
     cv::Point2i getPredictedLocation() const;
 
     void setScale(float min, float max, uint32_t searchSteps = 5);
+
+    cv::Mat getBestParticleView(cv::Mat map);
 
 };
 

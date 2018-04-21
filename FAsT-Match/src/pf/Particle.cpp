@@ -59,9 +59,30 @@ const vector<fast_match::MatchConfig> & Particle::getConfigs(int id) {
 }
 
 void Particle::propagate(const cv::Point2f &movement) {
-    double alpha = 2.0;
-    x += movement.x + ((Utilities::gausian_noise(1)) * ((movement.x == 0 ? 5 : movement.x) * alpha));
-    y += movement.y + ((Utilities::gausian_noise(1)) * ((movement.y == 0 ? 5 : movement.y) * alpha));
+
+    cv::Point2f m = movement;
+    float alpha = 4.0f;
+    float min_movement = 10.0f;
+    float min_noise_level = 5.0f;
+    // This is the case when the odometry is lost
+    if(movement.x == 0.f && movement.y == 0.f) {
+        m.x = static_cast<float>(Utilities::gausian_noise(1) * min_movement * alpha);
+        m.y = static_cast<float>(Utilities::gausian_noise(1) * min_movement * alpha);
+    } else {
+        // Do not trust in noise level measurements
+        if(movement.x < min_noise_level) {
+            m.x += Utilities::gausian_noise(1) * min_noise_level * alpha;
+        } else {
+            m.x += Utilities::gausian_noise(1) * m.x * alpha;
+        }
+        if(movement.y < min_noise_level) {
+            m.y += Utilities::gausian_noise(1) * min_noise_level * alpha;
+        } else {
+            m.y += Utilities::gausian_noise(1) * m.y * alpha;
+        }
+    }
+    x += m.x;
+    y += m.y;
     updateConfigs();
 }
 
@@ -182,6 +203,33 @@ std::string Particle::serialize(int binSize) {
 
 void Particle::setS_initial(const shared_ptr<vector<float>> &s_initial) {
     Particle::s_initial = s_initial;
+}
+
+cv::Point2i Particle::getLocationInMapCoords() const {
+    return {x - mapCenter.x, y - mapCenter.y};
+}
+
+double Particle::getDirection() {
+    return direction;
+}
+
+double Particle::getDirectionDegrees() const {
+    return direction * 57.2958;
+}
+
+cv::Point2i Particle::toPoint() const {
+    return cv::Point2i(x, y);
+}
+
+cv::Mat Particle::staticTransformation() const {
+    cv::Mat T = cv::getRotationMatrix2D(cv::Point(320, 240), getDirectionDegrees() , getScale());
+    //T.at<float>(0, 2) += (float) x;
+   // T.at<float>(1, 2) += (float) y;
+    return T;
+}
+
+float Particle::getScale() const {
+    return (*s_initial)[2];
 }
 
 Particle::Particle(const Particle &a) = default;
