@@ -57,8 +57,8 @@ std::string gen_number(std::string directory, const int len = 5) {
 
 cv::Point2f FastMatcherThread::match(cv::Mat image, cv::Mat templ, double direction) {
     double distance;
-    cv::resize(image, image, cv::Size(0, 0), scaleDownFactor, scaleDownFactor, CV_INTER_NN);
-    cv::resize(templ, templ, cv::Size(0, 0), scaleDownFactor, scaleDownFactor, CV_INTER_NN);
+    cv::resize(image, image, cv::Size(0, 0), scaleDownFactor, scaleDownFactor, cv::INTER_NEAREST);
+    cv::resize(templ, templ, cv::Size(0, 0), scaleDownFactor, scaleDownFactor, cv::INTER_NEAREST);
     high_resolution_clock::time_point t1;
     if(debug) {
         t1 = high_resolution_clock::now();

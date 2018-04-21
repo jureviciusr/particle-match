@@ -33,7 +33,7 @@ void ParticleFilterWorkspace::initialize(const MetadataEntry &metadata) {
     pfm->setImage(metadata.map.clone());
     map = metadata.map;
     updateScale(1.0, static_cast<float>(metadata.altitude), 640);
-    cv::namedWindow("Map", CV_WINDOW_NORMAL);
+    cv::namedWindow("Map", cv::WINDOW_NORMAL);
     startLocation = pfm->getPredictedLocation();
     //cv::namedWindow("BestTransform", CV_WINDOW_NORMAL);
 }
