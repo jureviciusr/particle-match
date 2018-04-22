@@ -33,7 +33,9 @@ void ParticleFilterWorkspace::initialize(const MetadataEntry &metadata) {
     pfm->setImage(metadata.map.clone());
     map = metadata.map;
     updateScale(1.0, static_cast<float>(metadata.altitude), 640);
-    cv::namedWindow("Map", cv::WINDOW_NORMAL);
+    if(displayImage) {
+        cv::namedWindow("Map", cv::WINDOW_NORMAL);
+    }
     startLocation = pfm->getPredictedLocation();
     //cv::namedWindow("BestTransform", CV_WINDOW_NORMAL);
 }
@@ -144,10 +146,14 @@ const {
         fs::path p(outputDirectory);
         cv::imwrite((p / filename).string(), mapDisplay);
     }
-    cv::imshow("Map", mapDisplay);
-    int key = cv::waitKey(10);
-    // Break the cycle on ESC key
-    return key != 27;
+    if(displayImage) {
+        cv::imshow("Map", mapDisplay);
+        int key = cv::waitKey(10);
+        // Break the cycle on ESC key
+        return key != 27;
+    } else {
+        return true;
+    }
 }
 
 void ParticleFilterWorkspace::visualizeGT(const cv::Point &loc, double yaw, cv::Mat &image, int radius, int thickness,
@@ -210,4 +216,12 @@ bool ParticleFilterWorkspace::isAffineMatching() const {
 
 void ParticleFilterWorkspace::setAffineMatching(bool affineMatching) {
     ParticleFilterWorkspace::affineMatching = affineMatching;
+}
+
+bool ParticleFilterWorkspace::isDisplayImage() const {
+    return displayImage;
+}
+
+void ParticleFilterWorkspace::setDisplayImage(bool displayImage) {
+    ParticleFilterWorkspace::displayImage = displayImage;
 }

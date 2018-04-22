@@ -26,6 +26,11 @@ protected:
                             const cv::Scalar &color = CV_RGB(255, 255, 0));
     void updateScale(float hfov, float altitude, uint32_t imageWidth);
     cv::Point getMovementFromSvo(const MetadataEntry& metadata);
+    bool displayImage = true;
+public:
+    bool isDisplayImage() const;
+
+    void setDisplayImage(bool displayImage);
 
 public:
     void setWriteImageToDisk(bool writeImageToDisk);

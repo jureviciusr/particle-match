@@ -20,6 +20,7 @@ int main(int ac, char *av[]) {
             ("skip-rate,s", po::value<uint32_t>()->default_value(10), "Skip number of dataset entries each iteration")
             ("write-images,w", "Write preview images to disk")
             ("affine-matching,a", "Perform affine image matching when evaluating particles")
+            ("preview,p", "Display preivew image using imshow")
             ("help", "produce help message");
 
     po::variables_map vm;
@@ -40,12 +41,14 @@ int main(int ac, char *av[]) {
 
     std::stringstream output;
 
+    bool displayPreview = vm.count("preview") > 0;
     bool pfInitialized = false;
     std::shared_ptr<ParticleFastMatch> pfm;
 
     // Declare reader
     MetadataEntryReader reader;
     ParticleFilterWorkspace pf;
+    pf.setDisplayImage(displayPreview);
     std::string mapName;
     if(vm.count("map-image")) {
         auto mapImage = vm["map-image"].as<std::string>();
