@@ -41,6 +41,7 @@ namespace fast_match {
         cv::Mat original_image;
 
     protected:
+        Mat imageGray, templGray;
         Mat image, templ;
     public:
         virtual void setImage(const Mat &image);

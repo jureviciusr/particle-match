@@ -138,6 +138,10 @@ float Utilities::calculateCorrCoeff(cv::Mat scene, cv::Mat templ) {
     return result.at<float>(0, 0);
 }
 
+float Utilities::calculateBriskCoef(cv::Mat scene, cv::Mat templ) {
+
+}
+
 cv::Mat Utilities::photometricNormalization(cv::Mat scene, cv::Mat templ) {
     double sum_x = cv::sum(scene)[0];
     double sum_y = cv::sum(templ)[0];

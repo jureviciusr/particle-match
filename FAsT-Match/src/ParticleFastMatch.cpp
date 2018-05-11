@@ -8,6 +8,10 @@
 #include "ParticleFastMatch.hpp"
 #include "Utilities.hpp"
 #include "AffineTransformation.hpp"
+#include <opencv2/features2d.hpp>
+#include <opencv2/xfeatures2d.hpp>
+#include <tbb/task_scheduler_init.h>
+
 
 #define WITHIN(val, top_left, bottom_right) (\
             val.x > top_left.x && val.y > top_left.y && \
@@ -43,6 +47,19 @@ ParticleFastMatch::ParticleFastMatch(
             zvalue = i / 100.0f;
             break;
         }
+    }
+    switch (matching) {
+
+        case PearsonCorrelation:break;
+        case BriskMatch:
+            detector = cv::BRISK::create();
+            break;
+        case ORBMatch:
+            detector = cv::ORB::create();
+            break;
+    }
+    if(!detector.empty()) {
+        matcher = std::make_shared<cv::BFMatcher>(detector->defaultNorm());
     }
 
 }
@@ -131,7 +148,6 @@ vector<Point> ParticleFastMatch::filterParticlesAffine(const cv::Point2f &moveme
             }
         }
     } while (newParticles.size() < samplingCount);
-
     tbb::parallel_for(0, (int) newParticles.size(), 1, [&] (int ip) {
         double probability;
         cv::Mat transform = evaluateParticle(newParticles[ip], ip, probability);
@@ -140,16 +156,8 @@ vector<Point> ParticleFastMatch::filterParticlesAffine(const cv::Point2f &moveme
             bestTransform = transform;
             bestProbability = probability;
         }
-        cv::Mat bestView = Utilities::extractWarpedMapPart(image, templ.size(), transform);
-        float ccoef = Utilities::calculateCorrCoeff(bestView, templ);
-        float prob;
-        float lowBound = 0.2f;
-        if(ccoef > 0.f) {
-            prob = lowBound + (ccoef * (1 - lowBound));
-        } else {
-            prob = lowBound - (std::abs(ccoef) * lowBound);
-        }
-        newParticles[ip].setProbability(prob/*((ccoef + 1) / 2.f)*/);
+        cv::Mat bestView = Utilities::extractWarpedMapPart(imageGray, templ.size(), transform);
+        newParticles[ip].setProbability(calculateSimilarity(bestView));
     });
 
     particles.assign(newParticles.begin(), newParticles.end());
@@ -401,6 +409,16 @@ void ParticleFastMatch::setImage(const Mat &image) {
 
 void ParticleFastMatch::setTemplate(const Mat &templ) {
     fast_match::FAsTMatch::setTemplate(templ);
+    switch (matching) {
+        case BriskMatch:
+        case ORBMatch: {
+            std::vector<cv::KeyPoint> keypointsA;
+            detector->detect(templGray, keypointsA);
+            detector->compute(templGray, keypointsA, templDescriptors);
+            break;
+        }
+        default: break;
+    }
 }
 
 uint32_t ParticleFastMatch::particleCount() const {
@@ -458,23 +476,15 @@ std::vector<cv::Point> ParticleFastMatch::filterParticles(const cv::Point2f &mov
             }
         }
     } while (newParticles.size() < samplingCount);
-    //for (particleIndex = 0; particleIndex < newParticles.size(); particleIndex++) {
+    //for (int ip = 0; ip < newParticles.size(); ip++) {
     tbb::parallel_for(0, (int) newParticles.size(), 1, [&] (int ip) {
-        cv::Mat bestView = Utilities::extractMapPart(image, templ.size(),
+        cv::Mat bestView = Utilities::extractMapPart(imageGray, templ.size(),
                                                      newParticles[ip].toPoint(),
                                                      newParticles[ip].getDirectionDegrees(),
                                                      1.f / newParticles[ip].getScale()
         );
-        float ccoef = Utilities::calculateCorrCoeff(bestView, templ);
-        float prob;
-        float lowBound = 0.2f;
-        if(ccoef > 0.f) {
-            prob = lowBound + (ccoef * (1 - lowBound));
-        } else {
-            prob = lowBound - (std::abs(ccoef) * lowBound);
-        }
-        newParticles[ip].setProbability(prob/*((ccoef + 1) / 2.f)*/);
-
+        newParticles[ip].setProbability(calculateSimilarity(bestView));
+    //}
     });
 
     particles.assign(newParticles.begin(), newParticles.end());
@@ -491,5 +501,44 @@ cv::Mat ParticleFastMatch::getBestParticleView(cv::Mat map) {
                                                  particles.back().getDirectionDegrees(),
                                                  1.f / particles.back().getScale());
 
+}
+
+float ParticleFastMatch::calculateSimilarity(cv::Mat im) const {
+    switch (matching) {
+        case PearsonCorrelation: {
+            float ccoef = Utilities::calculateCorrCoeff(std::move(im), templ);
+            float prob;
+            float lowBound = 0.2f;
+            if(ccoef > 0.f) {
+                prob = lowBound + (ccoef * (1 - lowBound));
+            } else {
+                prob = lowBound - (std::abs(ccoef) * lowBound);
+            }
+            return prob;
+        }
+        case ORBMatch:
+        case BriskMatch: {
+            std::vector<cv::KeyPoint> keypointsA, keypointsB;
+
+            cv::Mat descriptorsA, descriptorsB;
+
+            detector->detect(im, keypointsA);
+            detector->compute(im, keypointsA, descriptorsA);
+
+            std::vector<std::vector<cv::DMatch>> matches;
+
+            matcher->radiusMatch(templDescriptors, descriptorsA, matches, 50.f);
+
+            float weight = 0.0f;
+            for(const auto & singleMatch : matches) {
+                if(!singleMatch.empty()) {
+                    float normDist = 1.0f - (singleMatch[0].distance / (templDescriptors.cols * 8.f));
+                    weight += normDist;
+                }
+            }
+
+            return weight / (float) templDescriptors.rows;
+        }
+    }
 }
 

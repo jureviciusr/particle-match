@@ -39,6 +39,8 @@ public:
     static float calculateCorrCoeff(cv::Mat scene, cv::Mat templ);
 
     static cv::Mat photometricNormalization(cv::Mat scene, cv::Mat templ);
+
+    float calculateBriskCoef(cv::Mat scene, cv::Mat templ);
 };
 
 

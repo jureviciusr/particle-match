@@ -390,11 +390,21 @@ namespace fast_match {
     }
 
     void FAsTMatch::setImage(const Mat &image) {
-        FAsTMatch::image = Utilities::preprocessImage(image);
         FAsTMatch::original_image = image;
+        if(image.type() == CV_8UC3) {
+            cv::cvtColor(image, imageGray, CV_BGR2GRAY);
+            FAsTMatch::image = Utilities::preprocessImage(imageGray);
+        } else {
+            FAsTMatch::image = Utilities::preprocessImage(image);
+        }
     }
 
     void FAsTMatch::setTemplate(const Mat &templ) {
-        FAsTMatch::templ = Utilities::preprocessImage(templ);
+        if(templ.type() == CV_8UC3) {
+            cv::cvtColor(templ, templGray, CV_BGR2GRAY);
+            FAsTMatch::templ = Utilities::preprocessImage(templGray);
+        } else {
+            FAsTMatch::templ = Utilities::preprocessImage(templ);
+        }
     }
 }

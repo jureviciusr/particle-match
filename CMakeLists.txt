@@ -13,6 +13,8 @@ find_package( OpenCV REQUIRED )
 find_package( GeographicLib REQUIRED )
 find_package( Eigen3 REQUIRED )
 find_package(GDAL REQUIRED)
+find_package(CURL REQUIRED)
+include_directories(${CURL_INCLUDE_DIR})
 
 #add_subdirectory(map-library)
 
@@ -68,6 +70,11 @@ target_link_libraries(fastmatch ${OpenCV_LIBS} ${Boost_LIBRARIES} tbb)
 
 #add_executable(particle-fastmatch-test FAsT-Match/exec/particle-match-test.cpp)
 #target_link_libraries(particle-fastmatch-test fastmatch ${Boost_LIBRARIES})
+
+add_executable(map-masker FAsT-Match/exec/map-masker.cpp FAsT-Match/exec/xml-parser.h
+                            FAsT-Match/exec/PascalVocWriter.cpp)
+target_link_libraries(map-masker datasetreader ${CURL_LIBRARIES}
+        ${OpenCV_LIBS} ${Boost_LIBRARIES} ${GeographicLib_LIBRARY} ${GDAL_LIBRARY})
 
 add_executable(dataset-match FAsT-Match/exec/ParticleFilterWorkspace.cpp FAsT-Match/exec/dataset-test.cpp)
 target_link_libraries(dataset-match fastmatch ${Boost_LIBRARIES} datasetreader)

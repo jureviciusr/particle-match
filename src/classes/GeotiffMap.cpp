@@ -34,22 +34,39 @@ void GeotiffMap::open(const std::string &filename) {
         }
     }
 }
-
+/*
 cv::Point2i GeotiffMap::toPixels(double latitude, double longitude) const {
     return Map::toPixels(latitude, longitude);
 }
-
+*/
 void GeotiffMap::toCoords(const cv::Point2i &loc, double &latitude, double &longitude) {
     auto coords = pixelCoordinates(loc);
     latitude = coords.Latitude();
     longitude = coords.Longitude();
 }
 
-GeographicLib::GeoCoords GeotiffMap::pixelCoordinates(const cv::Point2i &loc) {
-    return {
-            zoneNumber,
-            northp,
-            adfGeoTransform[0] + loc.x * adfGeoTransform[1] + loc.y * adfGeoTransform[2],
-            adfGeoTransform[3] + loc.x * adfGeoTransform[4] + loc.y * adfGeoTransform[5]
-    };
+GeographicLib::GeoCoords GeotiffMap::pixelCoordinates(const cv::Point2i &loc) const {
+    double X = adfGeoTransform[0] + loc.x * adfGeoTransform[1] + loc.y * adfGeoTransform[2];
+    double Y = adfGeoTransform[3] + loc.x * adfGeoTransform[4] + loc.y * adfGeoTransform[5];
+    return { zoneNumber, northp, X, Y };
+}
+
+cv::Point2i GeotiffMap::toPixels(double latitude, double longitude) const {
+    //const double* A = adfGeoTransform;
+    //GeographicLib::GeoCoords coords(latitude, longitude, zoneNumber);
+    //GeographicLib::GeoCoords coords = pixelCoordinates(cv::Point2i(0, 0));
+    GeographicLib::GeoCoords coords(latitude, longitude);
+    double X = coords.Easting();
+    double Y = coords.Northing();
+    return cv::Point2i(
+            (int) std::round(((adfGeoTransform[5] * (adfGeoTransform[0] - X)) +
+                    (adfGeoTransform[2] * (Y - adfGeoTransform[3]))) /
+                   ((adfGeoTransform[2] * adfGeoTransform[4]) -
+                    (adfGeoTransform[1] * adfGeoTransform[5]))),
+            (int) std::round(((adfGeoTransform[1] * (Y - adfGeoTransform[3])) +
+                   (adfGeoTransform[4] * (adfGeoTransform[0] - X))) /
+                   ((adfGeoTransform[1] * adfGeoTransform[5]) -
+                    (adfGeoTransform[2] * adfGeoTransform[4])))
+
+    );
 }

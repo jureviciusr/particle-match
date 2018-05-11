@@ -10,6 +10,18 @@
 
 class ParticleFastMatch : public fast_match::FAsTMatch {
 public:
+    enum MatchMode {
+        PearsonCorrelation, BriskMatch, ORBMatch
+    };
+
+    cv::Mat templDescriptors;
+
+    MatchMode matching = ORBMatch;
+
+    cv::Ptr<cv::Feature2D> detector;
+
+    std::shared_ptr<cv::BFMatcher> matcher;
+
     ParticleFastMatch(
             const cv::Point2i& startLocation,
             const cv::Size& mapSize,
@@ -37,6 +49,8 @@ public:
 
 
     void setImage(const Mat &image) override;
+
+    float calculateSimilarity(cv::Mat im) const;
 
 protected:
     vector<AffineTransformation> configsToAffine(vector<fast_match::MatchConfig> &configs, vector<bool> &insiders);

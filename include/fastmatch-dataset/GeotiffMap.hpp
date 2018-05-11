@@ -20,7 +20,7 @@ public:
 
     void toCoords(const cv::Point2i &loc, double &latitude, double &longitude) override;
 
-    GeographicLib::GeoCoords pixelCoordinates(const cv::Point2i &loc);
+    GeographicLib::GeoCoords pixelCoordinates(const cv::Point2i &loc) const;
 
 
 };

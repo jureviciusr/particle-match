@@ -47,7 +47,7 @@ void ParticleFilterWorkspace::update(const MetadataEntry &metadata) {
     Particle::setDirection(direction);
     cv::Mat templ = metadata.getImageColored();
     pfm->setTemplate(templ);
-    if(affineMatching) {
+    if(!affineMatching) {
         pfm->filterParticles(movement, bestTransform);
         bestView = pfm->getBestParticleView(metadata.map);
         //cv::Mat bestView = Utilities::extractWarpedMapPart(metadata.map, templ.size(), bestTransform);

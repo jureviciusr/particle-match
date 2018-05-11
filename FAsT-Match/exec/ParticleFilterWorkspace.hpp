@@ -11,6 +11,7 @@
 
 class ParticleFilterWorkspace {
 protected:
+    bool affineMatching = false;
     std::shared_ptr<ParticleFastMatch> pfm;
     cv::Point svoCurPosition;
     double direction;
@@ -40,7 +41,7 @@ public:
     bool preview(const MetadataEntry& metadata, cv::Mat image, std::stringstream& stringOutput) const;
 
     Mat bestView;
-    bool affineMatching = false;
+
 
     bool isAffineMatching() const;
 
