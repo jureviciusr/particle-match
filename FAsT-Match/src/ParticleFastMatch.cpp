@@ -9,7 +9,6 @@
 #include "Utilities.hpp"
 #include "AffineTransformation.hpp"
 #include <opencv2/features2d.hpp>
-#include <opencv2/xfeatures2d.hpp>
 #include <tbb/task_scheduler_init.h>
 
 
