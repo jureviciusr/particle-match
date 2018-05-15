@@ -114,6 +114,23 @@ cv::Mat Utilities::extractWarpedMapPart(
     return destination;
 }
 
+cv::cuda::GpuMat Utilities::extractWarpedMapPart(
+        cv::cuda::GpuMat map,
+        const cv::Size &templ_size,
+        const cv::Mat &affine
+) {
+    cv::Mat T = cv::Mat::zeros(cv::Size(3, 2), CV_32F);
+    affine.copyTo(T);
+    std::vector<cv::Point> corners = calcCorners(map.size(), templ_size, T);
+    cv::Rect roi = cv::boundingRect(corners);
+    T.at<float>(0, 2) = corners[0].x - roi.x;
+    T.at<float>(1, 2) = corners[0].y - roi.y;
+    cv::cuda::GpuMat mapPart = map(roi);
+    cv::cuda::GpuMat destination(templ_size, CV_8UC1);
+    cv::cuda::warpAffine(mapPart, destination, T, templ_size, CV_INTER_NN | CV_WARP_INVERSE_MAP);
+    return destination;
+}
+
 double Utilities::calculateCorrelation(cv::Mat scene, cv::Mat templ) {
     cv::Scalar avgPixels(cv::sum(scene) / (scene.cols * scene.rows));
     cv::Mat sceneRoi = (scene - avgPixels);
@@ -138,8 +155,13 @@ float Utilities::calculateCorrCoeff(cv::Mat scene, cv::Mat templ) {
     return result.at<float>(0, 0);
 }
 
-float Utilities::calculateBriskCoef(cv::Mat scene, cv::Mat templ) {
-
+float Utilities::calculateCorrCoeff(cv::cuda::GpuMat scene, cv::cuda::GpuMat templ) {
+    cv::cuda::GpuMat result(cv::Size(1, 1), CV_32FC1);
+    cv::Mat resultL(cv::Size(1, 1), CV_32FC1);
+    cv::Ptr<cv::cuda::TemplateMatching> match = cv::cuda::createTemplateMatching(CV_8UC1, CV_TM_CCOEFF_NORMED);
+    match->match(scene, templ, result);
+    result.download(resultL);
+    return resultL.at<float>(0, 0);
 }
 
 cv::Mat Utilities::photometricNormalization(cv::Mat scene, cv::Mat templ) {
@@ -294,6 +316,25 @@ cv::Mat Utilities::extractMapPart(const cv::Mat &map,
     cv::Mat view(region.size(), region.type());
     cv::Mat rot_mat = cv::getRotationMatrix2D(cv::Point(centerLoc, centerLoc), angle, scale);
     cv::warpAffine(region, view, rot_mat, cv::Size(roiReserver, roiReserver));// cv::Size(roiReserver, roiReserver));
+    view(rotationRoi).copyTo(image);
+    return image;
+}
+
+cv::cuda::GpuMat Utilities::extractMapPart(const cv::cuda::GpuMat &map,
+                                  const cv::Size &size, const cv::Point &position, double angle, float scale) {
+    // Calculate how much data to crop out
+    cv::cuda::GpuMat image;
+    float imangle = std::atan(((float) size.width) / ((float) size.height));
+    int roiReserver = (int) std::ceil(size.width / std::sin(imangle));
+    int centerLoc = roiReserver / 2;
+    // Cut part of map
+    cv::cuda::GpuMat region = map(cv::Rect(position.x - centerLoc, position.y - centerLoc, roiReserver, roiReserver));
+    // Prepare cropping after rotation
+    cv::Rect rotationRoi(centerLoc - (size.width / 2), centerLoc - (size.height / 2), size.width + 1, size.height + 1);
+    // Actual rotation
+    cv::cuda::GpuMat view(region.size(), region.type());
+    cv::Mat rot_mat = cv::getRotationMatrix2D(cv::Point(centerLoc, centerLoc), angle, scale);
+    cv::cuda::warpAffine(region, view, rot_mat, cv::Size(roiReserver, roiReserver));// cv::Size(roiReserver, roiReserver));
     view(rotationRoi).copyTo(image);
     return image;
 }

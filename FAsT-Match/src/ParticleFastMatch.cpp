@@ -52,14 +52,15 @@ ParticleFastMatch::ParticleFastMatch(
 
         case PearsonCorrelation:break;
         case BriskMatch:
-            detector = cv::BRISK::create();
+            detector = cv::BRISK::create(20);
             break;
         case ORBMatch:
-            detector = cv::ORB::create();
+            detector = cv::cuda::ORB::create();//cv::ORB::create();
             break;
     }
     if(!detector.empty()) {
-        matcher = std::make_shared<cv::BFMatcher>(detector->defaultNorm());
+        //matcher = std::make_shared<cv::cuda::DescriptorMatcher>();
+        matcher = cv::cuda::DescriptorMatcher::createBFMatcher(detector->defaultNorm());
     }
 
 }
@@ -156,7 +157,7 @@ vector<Point> ParticleFastMatch::filterParticlesAffine(const cv::Point2f &moveme
             bestTransform = transform;
             bestProbability = probability;
         }
-        cv::Mat bestView = Utilities::extractWarpedMapPart(imageGray, templ.size(), transform);
+        cv::cuda::GpuMat bestView = Utilities::extractWarpedMapPart(imageGrayGpu, templ.size(), transform);
         newParticles[ip].setProbability(calculateSimilarity(bestView));
     });
 
@@ -413,8 +414,13 @@ void ParticleFastMatch::setTemplate(const Mat &templ) {
         case BriskMatch:
         case ORBMatch: {
             std::vector<cv::KeyPoint> keypointsA;
-            detector->detect(templGray, keypointsA);
-            detector->compute(templGray, keypointsA, templDescriptors);
+            detector->detect(templGrayGpu, keypointsA);
+            detector->compute(templGrayGpu, keypointsA, templGpuDescriptors);
+            //templGpuDescriptors.upload(templDescriptors);
+            /*if(!matcher->empty()) {
+                matcher->clear();
+            }
+            matcher->add({templGpuDescriptors});*/
             break;
         }
         default: break;
@@ -476,16 +482,22 @@ std::vector<cv::Point> ParticleFastMatch::filterParticles(const cv::Point2f &mov
             }
         }
     } while (newParticles.size() < samplingCount);
-    //for (int ip = 0; ip < newParticles.size(); ip++) {
-    tbb::parallel_for(0, (int) newParticles.size(), 1, [&] (int ip) {
-        cv::Mat bestView = Utilities::extractMapPart(imageGray, templ.size(),
-                                                     newParticles[ip].toPoint(),
-                                                     newParticles[ip].getDirectionDegrees(),
-                                                     1.f / newParticles[ip].getScale()
+    for (auto& particle : newParticles) {
+        cv::cuda::GpuMat bestView = Utilities::extractMapPart(imageGrayGpu, templ.size(),
+                                                              particle.toPoint(),
+                                                              particle.getDirectionDegrees(),
+                                                              1.f / particle.getScale()
         );
-        newParticles[ip].setProbability(calculateSimilarity(bestView));
-    //}
-    });
+        particle.setProbability(calculateSimilarity(bestView));
+    }
+    //tbb::parallel_for(0, (int) newParticles.size(), 1, [&] (int ip) {
+    //    cv::cuda::GpuMat bestView = Utilities::extractMapPart(imageGrayGpu, templ.size(),
+    //                                                 newParticles[ip].toPoint(),
+    //                                                 newParticles[ip].getDirectionDegrees(),
+    //                                                 1.f / newParticles[ip].getScale()
+    //    );
+    //    newParticles[ip].setProbability(calculateSimilarity(bestView));
+    //});
 
     particles.assign(newParticles.begin(), newParticles.end());
     particles.normalize();
@@ -518,21 +530,33 @@ float ParticleFastMatch::calculateSimilarity(cv::Mat im) const {
         }
         case ORBMatch:
         case BriskMatch: {
-            std::vector<cv::KeyPoint> keypointsA, keypointsB;
+            using namespace std::chrono;
 
-            cv::Mat descriptorsA, descriptorsB;
+            std::vector<cv::KeyPoint> keypointsA;
 
+            cv::Mat descriptorsA;
+            cv::cuda::GpuMat gpuDescriptors;
+            high_resolution_clock::time_point t1 = high_resolution_clock::now();
             detector->detect(im, keypointsA);
             detector->compute(im, keypointsA, descriptorsA);
+            high_resolution_clock::time_point t2 = high_resolution_clock::now();
+            auto duration = duration_cast<milliseconds>( t2 - t1 ).count();
+            std::cout << "Detect / compute: " << duration << "\n";
 
-            std::vector<std::vector<cv::DMatch>> matches;
+            std::vector<cv::DMatch> matches;
+            t1 = high_resolution_clock::now();
+            gpuDescriptors.upload(descriptorsA);
+            matcher->match(templGpuDescriptors, gpuDescriptors, matches);
+            t2 = high_resolution_clock::now();
+            duration = duration_cast<milliseconds>( t2 - t1 ).count();
+            std::cout << "Match: " << duration << "\n";
 
-            matcher->radiusMatch(templDescriptors, descriptorsA, matches, 50.f);
-
+            float maxDistance = 55.f;
             float weight = 0.0f;
+
             for(const auto & singleMatch : matches) {
-                if(!singleMatch.empty()) {
-                    float normDist = 1.0f - (singleMatch[0].distance / (templDescriptors.cols * 8.f));
+                if(singleMatch.distance < maxDistance) {
+                    float normDist = 1.f - (singleMatch.distance / (templDescriptors.cols * 8.f));
                     weight += normDist;
                 }
             }
@@ -542,3 +566,53 @@ float ParticleFastMatch::calculateSimilarity(cv::Mat im) const {
     }
 }
 
+float ParticleFastMatch::calculateSimilarity(cv::cuda::GpuMat im) const {
+    switch (matching) {
+
+        case PearsonCorrelation: {
+            float ccoef = Utilities::calculateCorrCoeff(im, templGrayGpu);
+            float prob;
+            float lowBound = 0.00f;
+            if(ccoef > 0.f) {
+                prob = lowBound + (ccoef * (1.f - lowBound));
+            } else {
+                prob = lowBound - (std::abs(ccoef) * lowBound);
+            }
+            return prob;
+        }
+        case BriskMatch: {
+            std::cerr << "BRISK GPU IMPLEMENTATION IS NOT AVAILABLE\n";
+            exit(10);
+        }
+        case ORBMatch: {
+            using namespace std::chrono;
+            std::vector<cv::KeyPoint> keypointsA;
+
+            cv::cuda::GpuMat gpuDescriptors;
+            high_resolution_clock::time_point t1 = high_resolution_clock::now();
+            detector->detectAndCompute(im, cv::noArray(), keypointsA, gpuDescriptors);
+            high_resolution_clock::time_point t2 = high_resolution_clock::now();
+            auto duration = duration_cast<milliseconds>( t2 - t1 ).count();
+            std::cout << "Detect / compute: " << duration << "\n";
+            std::vector<cv::DMatch> matches;
+            t1 = high_resolution_clock::now();
+            matcher->match(templGpuDescriptors, gpuDescriptors, matches);
+            t2 = high_resolution_clock::now();
+            duration = duration_cast<milliseconds>( t2 - t1 ).count();
+            std::cout << "Match: " << duration << "\n";
+
+            float maxDistance = 55.f;
+            float weight = 0.0f;
+
+            for(const auto & singleMatch : matches) {
+                if(singleMatch.distance < maxDistance) {
+                    float normDist = 1.f - (singleMatch.distance / (templGpuDescriptors.cols * 8.f));
+                    weight += normDist;
+                }
+            }
+
+            return weight / (float) templGpuDescriptors.rows;
+
+        }
+    }
+}

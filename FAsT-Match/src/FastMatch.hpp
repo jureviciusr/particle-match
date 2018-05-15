@@ -42,7 +42,10 @@ namespace fast_match {
 
     protected:
         Mat imageGray, templGray;
+        cv::cuda::GpuMat imageGrayGpu;
         Mat image, templ;
+        cv::cuda::GpuMat templGrayGpu;
+
     public:
         virtual void setImage(const Mat &image);
 

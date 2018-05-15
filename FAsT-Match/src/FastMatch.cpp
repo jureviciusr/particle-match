@@ -397,6 +397,7 @@ namespace fast_match {
         } else {
             FAsTMatch::image = Utilities::preprocessImage(image);
         }
+        imageGrayGpu.upload(imageGray);
     }
 
     void FAsTMatch::setTemplate(const Mat &templ) {
@@ -406,5 +407,6 @@ namespace fast_match {
         } else {
             FAsTMatch::templ = Utilities::preprocessImage(templ);
         }
+        templGrayGpu.upload(templGray);
     }
 }

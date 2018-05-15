@@ -53,7 +53,7 @@ void ParticleFilterWorkspace::update(const MetadataEntry &metadata) {
         //cv::Mat bestView = Utilities::extractWarpedMapPart(metadata.map, templ.size(), bestTransform);
     } else {
         corners = pfm->filterParticlesAffine(movement, bestTransform);
-        cv::Mat bestView = Utilities::extractWarpedMapPart(metadata.map, templ.size(), bestTransform);
+        //cv::Mat bestView = Utilities::extractWarpedMapPart(metadata.map, templ.size(), bestTransform);
     }
    // cv::Point2i prediction = pfm->getPredictedLocation();
 }

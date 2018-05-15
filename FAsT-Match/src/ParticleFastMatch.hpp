@@ -15,12 +15,15 @@ public:
     };
 
     cv::Mat templDescriptors;
+    cv::cuda::GpuMat templGpuDescriptors;
 
-    MatchMode matching = ORBMatch;
+    MatchMode matching = PearsonCorrelation;
 
     cv::Ptr<cv::Feature2D> detector;
 
-    std::shared_ptr<cv::BFMatcher> matcher;
+    //cv::Ptr<cv::cuda::Feature2DAsync> detectorGPU;
+
+    cv::Ptr<cv::cuda::DescriptorMatcher> matcher;
 
     ParticleFastMatch(
             const cv::Point2i& startLocation,
@@ -90,6 +93,7 @@ public:
 
     cv::Mat getBestParticleView(cv::Mat map);
 
+    float calculateSimilarity(cuda::GpuMat im) const;
 };
 
 

@@ -40,7 +40,12 @@ public:
 
     static cv::Mat photometricNormalization(cv::Mat scene, cv::Mat templ);
 
-    float calculateBriskCoef(cv::Mat scene, cv::Mat templ);
+    static cv::cuda::GpuMat extractWarpedMapPart(cv::cuda::GpuMat map, const cv::Size &templ_size, const cv::Mat &affine);
+
+    static cv::cuda::GpuMat
+    extractMapPart(const cv::cuda::GpuMat &map, const cv::Size &size, const cv::Point &position, double angle, float scale);
+
+    static float calculateCorrCoeff(cv::cuda::GpuMat scene, cv::cuda::GpuMat templ);
 };
 
 
