@@ -571,11 +571,21 @@ float ParticleFastMatch::calculateSimilarity(cv::cuda::GpuMat im) const {
         case PearsonCorrelation: {
             float ccoef = Utilities::calculateCorrCoeff(im, templGrayGpu);
             float prob;
-            float lowBound = 0.00f;
-            if(ccoef > 0.f) {
-                prob = lowBound + (ccoef * (1.f - lowBound));
+            if (lowBound < 0.0f) {
+                float b = std::abs(lowBound);
+                // Just to deal with bad floating point precision
+                if (ccoef > (b + 0.00001f)) {
+                    float slope = 1 + b;
+                    prob = (slope * ccoef) - (slope * b) + (b * b);
+                } else {
+                    prob = 0.f;
+                }
             } else {
-                prob = lowBound - (std::abs(ccoef) * lowBound);
+                if (ccoef > 0.f) {
+                    prob = lowBound + (ccoef * (1.f - lowBound));
+                } else {
+                    prob = lowBound - (std::abs(ccoef) * lowBound);
+                }
             }
             return prob;
         }
@@ -614,4 +624,12 @@ float ParticleFastMatch::calculateSimilarity(cv::cuda::GpuMat im) const {
 
         }
     }
+}
+
+float ParticleFastMatch::getLowBound() const {
+    return lowBound;
+}
+
+void ParticleFastMatch::setLowBound(float lowBound) {
+    ParticleFastMatch::lowBound = lowBound;
 }

@@ -225,3 +225,7 @@ bool ParticleFilterWorkspace::isDisplayImage() const {
 void ParticleFilterWorkspace::setDisplayImage(bool displayImage) {
     ParticleFilterWorkspace::displayImage = displayImage;
 }
+
+void ParticleFilterWorkspace::setCorrelationLowBound(float bound) {
+    pfm->setLowBound(bound);
+}

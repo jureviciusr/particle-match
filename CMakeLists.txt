@@ -79,6 +79,9 @@ target_link_libraries(map-masker datasetreader ${CURL_LIBRARIES}
 add_executable(dataset-match FAsT-Match/exec/ParticleFilterWorkspace.cpp FAsT-Match/exec/dataset-test.cpp)
 target_link_libraries(dataset-match fastmatch ${Boost_LIBRARIES} datasetreader)
 
+add_executable(test-slopes FAsT-Match/exec/test-slopes.cpp)
+target_link_libraries(test-slopes ${Boost_LIBRARIES})
+
 #add_executable(fast-map-match src/map-match.cpp)
 #target_link_libraries(fast-map-match fastmatch ${Boost_LIBRARIES} map_library)
 

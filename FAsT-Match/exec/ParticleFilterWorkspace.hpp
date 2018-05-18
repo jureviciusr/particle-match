@@ -46,6 +46,8 @@ public:
     bool isAffineMatching() const;
 
     void setAffineMatching(bool affineMatching);
+
+    void setCorrelationLowBound(float bound);
 };
 
 

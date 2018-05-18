@@ -21,7 +21,8 @@ int main(int ac, char *av[]) {
             ("write-images,w", "Write preview images to disk")
             ("affine-matching,a", "Perform affine image matching when evaluating particles")
             ("preview,p", "Display preivew image using imshow")
-            ("help", "produce help message");
+            ("correlation-bound,c", po::value<float>()->default_value(0.1f), "Correlation activation bound")
+            ("help,h", "produce help message");
 
     po::variables_map vm;
     po::store(po::parse_command_line(ac, (const char *const *) av, desc), vm);
@@ -90,6 +91,7 @@ int main(int ac, char *av[]) {
                 output << iteration++ << ",\"" << entry.imageFileName << "\",";
                 if(!pfInitialized) {
                     pf.initialize(entry);
+                    pf.setCorrelationLowBound(vm["correlation-bound"].as<float>());
                     pfInitialized = true;
                 } else {
                     pf.update(entry);

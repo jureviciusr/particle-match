@@ -69,6 +69,11 @@ protected:
     float zvalue;
     std::vector<float> ztable;
 
+    float lowBound = 0.00f;
+public:
+    float getLowBound() const;
+
+    void setLowBound(float lowBound);
 
 private:
     using fast_match::FAsTMatch::init;
