@@ -16,6 +16,7 @@ double zeroIfNan(double x) {
 #include <opencv2/imgproc.hpp>
 #include <FAsT-Match/MatchConfig.h>
 #include <tbb/parallel_for.h>
+#include <chrono>
 #include "Utilities.hpp"
 
 using namespace cv;
@@ -196,7 +197,7 @@ float Utilities::getThresholdPerDelta(float delta) {
 }
 
 double Utilities::normal_dist() {
-    static std::minstd_rand g;
+    static std::minstd_rand g(static_cast<unsigned long>(std::chrono::system_clock::now().time_since_epoch().count()));
     static std::normal_distribution<double> normal(0.0, 0.33333);
     return normal(g);
 }
@@ -211,7 +212,7 @@ double Utilities::gausian_noise(double u) {
 
 double Utilities::uniform_dist() {
     static std::uniform_real_distribution<double> uniform(0.0, 1.0);
-    static std::minstd_rand g;
+    static std::minstd_rand g(static_cast<unsigned long>(std::chrono::system_clock::now().time_since_epoch().count()));
     return uniform(g);
 }
 
