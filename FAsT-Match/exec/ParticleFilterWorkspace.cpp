@@ -229,3 +229,12 @@ void ParticleFilterWorkspace::setDisplayImage(bool displayImage) {
 void ParticleFilterWorkspace::setCorrelationLowBound(float bound) {
     pfm->setLowBound(bound);
 }
+
+void ParticleFilterWorkspace::setConversionMethod(ParticleFastMatch::ConversionMode method) {
+    pfm->conversionMode = method;
+}
+
+void ParticleFilterWorkspace::describe() const {
+    std::cout << "Using conversion mode: " << (pfm->conversionMode == ParticleFastMatch::HPRELU ? "HPRELU\n" : "GLF\n");
+    std::cout << "Conversion bound: " << pfm->getLowBound() << "\n";
+}

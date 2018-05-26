@@ -14,6 +14,12 @@ public:
         PearsonCorrelation, BriskMatch, ORBMatch
     };
 
+    enum ConversionMode {
+        HPRELU, GLF
+    };
+
+    ConversionMode conversionMode = HPRELU;
+
     cv::Mat templDescriptors;
     cv::cuda::GpuMat templGpuDescriptors;
 
@@ -99,6 +105,8 @@ public:
     cv::Mat getBestParticleView(cv::Mat map);
 
     float calculateSimilarity(cuda::GpuMat im) const;
+
+    float convertProbability(float in) const;
 };
 
 

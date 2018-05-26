@@ -48,6 +48,10 @@ public:
     void setAffineMatching(bool affineMatching);
 
     void setCorrelationLowBound(float bound);
+
+    void setConversionMethod(ParticleFastMatch::ConversionMode method);
+
+    void describe() const;
 };
 
 

@@ -22,6 +22,8 @@ int main(int ac, char *av[]) {
             ("affine-matching,a", "Perform affine image matching when evaluating particles")
             ("preview,p", "Display preivew image using imshow")
             ("correlation-bound,c", po::value<float>()->default_value(0.1f), "Correlation activation bound")
+            ("conversion-method,M", po::value<std::string>()->default_value("hprelu"), "Correlation to probability conversion "
+                                                                                       "function: hprelu or glf")
             ("help,h", "produce help message");
 
     po::variables_map vm;
@@ -91,8 +93,12 @@ int main(int ac, char *av[]) {
                 output << iteration++ << ",\"" << entry.imageFileName << "\",";
                 if(!pfInitialized) {
                     pf.initialize(entry);
+                    if(vm["conversion-method"].as<std::string>() == "glf") {
+                        pf.setConversionMethod(ParticleFastMatch::GLF);
+                    }
                     pf.setCorrelationLowBound(vm["correlation-bound"].as<float>());
                     pfInitialized = true;
+                    pf.describe();
                 } else {
                     pf.update(entry);
                 }

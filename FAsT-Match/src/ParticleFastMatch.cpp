@@ -565,29 +565,54 @@ float ParticleFastMatch::calculateSimilarity(cv::Mat im) const {
     }
 }
 
+float glf(float x, float v = .3f, float B = 5.f, float Q = 1.f, float C = 1.f, float A = 0.f, float K = 1.f) {
+    return (A + (K - A) / std::pow(C + (Q * std::exp(-B * x)), 1.f / v));
+}
+
+float normalGLF(float x, float v) {
+    //float a = static_cast<float>(1.f / (sigma * std::sqrt(2.f * M_PI)));
+    //float exponent = std::exp(-(std::pow((x - mu) / sigma, 2.0f) / 2.0f));
+    //return a * exponent;
+    return glf(x, v) / glf(1.0f, v);
+}
+
+float hprelu(float ccoef, float lowBound) {
+    float prob;
+    if (lowBound < 0.0f) {
+        lowBound = std::abs(lowBound);
+        if (ccoef > (lowBound + 0.00001f)) {
+            float slope = 1 + lowBound;
+            prob = (slope * ccoef) - (slope * lowBound) + (lowBound * lowBound);
+        } else {
+            prob = 0.f;
+        }
+    } else {
+        if (ccoef > 0.f) {
+            prob = lowBound + (ccoef * (1.f - lowBound));
+        } else {
+            prob = lowBound - (std::abs(ccoef) * lowBound);
+        }
+    }
+    return prob;
+}
+
+float ParticleFastMatch::convertProbability(float in) const {
+    switch (conversionMode) {
+        case HPRELU:
+            hprelu(in, lowBound);
+            break;
+        case GLF:
+            normalGLF(in, lowBound);
+            break;
+    }
+}
+
 float ParticleFastMatch::calculateSimilarity(cv::cuda::GpuMat im) const {
     switch (matching) {
 
         case PearsonCorrelation: {
             float ccoef = Utilities::calculateCorrCoeff(im, templGrayGpu);
-            float prob;
-            if (lowBound < 0.0f) {
-                float b = std::abs(lowBound);
-                // Just to deal with bad floating point precision
-                if (ccoef > (b + 0.00001f)) {
-                    float slope = 1 + b;
-                    prob = (slope * ccoef) - (slope * b) + (b * b);
-                } else {
-                    prob = 0.f;
-                }
-            } else {
-                if (ccoef > 0.f) {
-                    prob = lowBound + (ccoef * (1.f - lowBound));
-                } else {
-                    prob = lowBound - (std::abs(ccoef) * lowBound);
-                }
-            }
-            return prob;
+            return convertProbability(ccoef);
         }
         case BriskMatch: {
             std::cerr << "BRISK GPU IMPLEMENTATION IS NOT AVAILABLE\n";
