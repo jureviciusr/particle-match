@@ -17,6 +17,7 @@ int main(int ac, char *av[]) {
     desc.add_options()
             ("map-image,m", po::value<std::string>(), "Path to map image")
             ("dataset,d", po::value<std::string>(), "Path to dataset directory")
+            ("results,r", po::value<std::string>()->default_value("results"), "Result directory name directory")
             ("skip-rate,s", po::value<uint32_t>()->default_value(10), "Skip number of dataset entries each iteration")
             ("write-images,w", "Write preview images to disk")
             ("affine-matching,a", "Perform affine image matching when evaluating particles")
@@ -75,7 +76,8 @@ int main(int ac, char *av[]) {
         if (std::strftime(mbstr, sizeof(mbstr), "%Y%m%d-%H%M%S", std::localtime(&t))) {
             time = std::string(mbstr);
         }
-        fs::path dir = datasetPath / "results" / (time + (mapName.empty() ? "" : "-" + mapName));
+        auto resultsDir = vm["results"].as<std::string>();
+        fs::path dir = datasetPath / resultsDir / (time + (mapName.empty() ? "" : "-" + mapName));
         fs::create_directories(dir);
         outFile.open((dir / "data.csv").string());
         if(writeImages) {
