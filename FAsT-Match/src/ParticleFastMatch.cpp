@@ -157,7 +157,7 @@ vector<Point> ParticleFastMatch::filterParticlesAffine(const cv::Point2f &moveme
             bestProbability = probability;
         }
         cv::cuda::GpuMat bestView = Utilities::extractWarpedMapPart(imageGrayGpu, templ.size(), transform);
-        newParticles[ip].setProbability(calculateSimilarity(bestView));
+        calculateSimilarity(bestView, newParticles[ip]);
     });
 
     particles.assign(newParticles.begin(), newParticles.end());
@@ -487,7 +487,7 @@ std::vector<cv::Point> ParticleFastMatch::filterParticles(const cv::Point2f &mov
                                                               particle.getDirectionDegrees(),
                                                               1.f / particle.getScale()
         );
-        particle.setProbability(calculateSimilarity(bestView));
+        calculateSimilarity(bestView, particle);
     }
     //tbb::parallel_for(0, (int) newParticles.size(), 1, [&] (int ip) {
     //    cv::cuda::GpuMat bestView = Utilities::extractMapPart(imageGrayGpu, templ.size(),
@@ -607,12 +607,14 @@ float ParticleFastMatch::convertProbability(float in) const {
     }
 }
 
-float ParticleFastMatch::calculateSimilarity(cv::cuda::GpuMat im) const {
+void ParticleFastMatch::calculateSimilarity(cv::cuda::GpuMat im, Particle& particle) const {
     switch (matching) {
 
         case PearsonCorrelation: {
             float ccoef = Utilities::calculateCorrCoeff(im, templGrayGpu);
-            return convertProbability(ccoef);
+            particle.setCorrelation(ccoef);
+            particle.setProbability(convertProbability(ccoef));
+            break;
         }
         case BriskMatch: {
             std::cerr << "BRISK GPU IMPLEMENTATION IS NOT AVAILABLE\n";
@@ -644,9 +646,9 @@ float ParticleFastMatch::calculateSimilarity(cv::cuda::GpuMat im) const {
                     weight += normDist;
                 }
             }
-
-            return weight / (float) templGpuDescriptors.rows;
-
+            particle.setCorrelation(-INFINITY);
+            particle.setProbability(weight / (float) templGpuDescriptors.rows);
+            break;
         }
     }
 }
@@ -657,4 +659,8 @@ float ParticleFastMatch::getLowBound() const {
 
 void ParticleFastMatch::setLowBound(float lowBound) {
     ParticleFastMatch::lowBound = lowBound;
+}
+
+const Particles &ParticleFastMatch::getParticles() const {
+    return particles;
 }

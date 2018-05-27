@@ -52,6 +52,9 @@ public:
     void setConversionMethod(ParticleFastMatch::ConversionMode method);
 
     void describe() const;
+
+    const Particles &getParticles() const;
+
 };
 
 

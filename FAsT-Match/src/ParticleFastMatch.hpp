@@ -65,6 +65,10 @@ protected:
     vector<AffineTransformation> configsToAffine(vector<fast_match::MatchConfig> &configs, vector<bool> &insiders);
 
     Particles particles;
+public:
+    const Particles &getParticles() const;
+
+protected:
     float kld_error = 0.5f;
     int binSize = 5;
 
@@ -104,7 +108,7 @@ public:
 
     cv::Mat getBestParticleView(cv::Mat map);
 
-    float calculateSimilarity(cuda::GpuMat im) const;
+    void calculateSimilarity(cv::cuda::GpuMat im, Particle& particle) const;
 
     float convertProbability(float in) const;
 };

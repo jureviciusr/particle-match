@@ -238,3 +238,7 @@ void ParticleFilterWorkspace::describe() const {
     std::cout << "Using conversion mode: " << (pfm->conversionMode == ParticleFastMatch::HPRELU ? "HPRELU\n" : "GLF\n");
     std::cout << "Conversion bound: " << pfm->getLowBound() << "\n";
 }
+
+const Particles &ParticleFilterWorkspace::getParticles() const {
+    return pfm->getParticles();
+}

@@ -27,7 +27,13 @@ protected:
     uint32_t iteration = 0;
     float weight;
     cv::Mat bestTransform;
+    float correlation = -1.0f;
+public:
+    float getCorrelation() const;
 
+    void setCorrelation(float correlation);
+
+protected:
     std::vector<cv::Mat> getAffines(const cv::Size& imageSize, const cv::Size& templSize);
 
 public:

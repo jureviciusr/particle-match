@@ -25,6 +25,7 @@ int main(int ac, char *av[]) {
             ("correlation-bound,c", po::value<float>()->default_value(0.1f), "Correlation activation bound")
             ("conversion-method,M", po::value<std::string>()->default_value("hprelu"), "Correlation to probability conversion "
                                                                                        "function: hprelu or glf")
+            ("write-histograms,H", "Write correlation histograms to a separate CSV file")
             ("help,h", "produce help message");
 
     po::variables_map vm;
@@ -70,6 +71,10 @@ int main(int ac, char *av[]) {
     // Declare path and sanity check
     fs::path datasetPath(vm["dataset"].as<std::string>());
     std::ofstream outFile;
+    bool writeHistograms = false;
+    if(vm.count("write-histograms")) {
+        writeHistograms = true;
+    }
     if(fs::exists(datasetPath / "metadata.csv")) {
         bool writeImages = (vm.count("write-images") > 0);
         char mbstr[100];
@@ -87,6 +92,10 @@ int main(int ac, char *av[]) {
             pf.setOutputDirectory(dir.string());
         }
         if(reader.openDirectory(datasetPath.string())) {
+            std::ofstream hists;
+            if(writeHistograms) {
+                hists.open((dir / "histograms.csv").string());
+            }
             output << "\"Iteration\",\"ImageName\",\"ParticleCount\",\"PosX\",\"PosY\",\"Distance\",\"SVODistance\"\n";
             // Parse line by line into the structure
             MetadataEntry entry;
@@ -103,6 +112,18 @@ int main(int ac, char *av[]) {
                     pf.describe();
                 } else {
                     pf.update(entry);
+                    if(writeHistograms) {
+                        bool firstParticle = true;
+                        for(const auto& particle : pf.getParticles()) {
+                            if(firstParticle) {
+                                firstParticle = false;
+                            } else {
+                                hists << ",";
+                            }
+                            hists << particle.getCorrelation();
+                        }
+                        hists << std::endl;
+                    }
                 }
                 cv::Mat image = entry.getImageColored();
                 if(!pf.preview(entry, image, output)) {

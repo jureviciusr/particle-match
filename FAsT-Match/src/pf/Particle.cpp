@@ -232,5 +232,13 @@ float Particle::getScale() const {
     return (*s_initial)[2];
 }
 
+float Particle::getCorrelation() const {
+    return correlation;
+}
+
+void Particle::setCorrelation(float correlation) {
+    Particle::correlation = correlation;
+}
+
 Particle::Particle(const Particle &a) = default;
 
