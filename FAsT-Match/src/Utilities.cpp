@@ -340,3 +340,31 @@ cv::cuda::GpuMat Utilities::extractMapPart(const cv::cuda::GpuMat &map,
     return image;
 }
 
+cv::Mat Utilities::eulerAnglesToRotationMatrix(const cv::Point3d& angles) {
+    cv::Mat R_x = (cv::Mat_<double>(3, 3) << 1.0, 0.0, 0.0,
+                                             0.0, std::cos(angles.x), -std::sin(angles.x),
+                                             0.0, std::sin(angles.x), std::cos(angles.x));
+    cv::Mat R_y = (cv::Mat_<double>(3, 3) << std::cos(angles.y), 0.0, std::sin(angles.y),
+                                             0.0, 1.0, 0.0,
+                                             -std::sin(angles.y), 0.0, std::cos(angles.y));
+    cv::Mat R_z = (cv::Mat_<double>(3, 3) << std::cos(angles.z), -std::sin(angles.z), 0.0,
+                                             std::sin(angles.z), std::cos(angles.z), 0.0,
+                                             0.0, 0.0, 1.0);
+    return R_z * (R_y * R_x);
+}
+
+cv::Point3d Utilities::intersectPlaneV3(const cv::Point3d& a, const cv::Point3d& b, const cv::Point3d& p_co,
+                                        const cv::Point3d& p_no, float epsilon) {
+    cv::Point3d u = b - a;
+    double dot = p_no.dot(u);//dotPoint3d(p_no, u);
+    if (std::abs(dot) > epsilon) {
+        cv::Point3d w = a - p_co;
+        double fac = (p_no * -1).dot(w) / dot;
+        u *= fac;
+        return a + u;
+    } else {
+        return cv::Point3d();
+    }
+}
+
+

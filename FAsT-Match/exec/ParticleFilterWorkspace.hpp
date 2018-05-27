@@ -55,6 +55,7 @@ public:
 
     const Particles &getParticles() const;
 
+    Point getMovementFromSvo2(const MetadataEntry &metadata);
 };
 
 

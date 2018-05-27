@@ -71,14 +71,14 @@ void Particle::propagate(const cv::Point2f &movement) {
     } else {
         // Do not trust in noise level measurements
         if(movement.x < min_noise_level) {
-            m.x += Utilities::gausian_noise(1) * min_noise_level * alpha;
+            m.x += Utilities::gausian_noise(alpha) * min_noise_level;
         } else {
-            m.x += Utilities::gausian_noise(1) * m.x * alpha;
+            m.x += Utilities::gausian_noise(alpha) * m.x;
         }
         if(movement.y < min_noise_level) {
-            m.y += Utilities::gausian_noise(1) * min_noise_level * alpha;
+            m.y += Utilities::gausian_noise(alpha) * min_noise_level;
         } else {
-            m.y += Utilities::gausian_noise(1) * m.y * alpha;
+            m.y += Utilities::gausian_noise(alpha) * m.y;
         }
     }
     x += m.x;

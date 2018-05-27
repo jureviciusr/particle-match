@@ -46,6 +46,12 @@ public:
     extractMapPart(const cv::cuda::GpuMat &map, const cv::Size &size, const cv::Point &position, double angle, float scale);
 
     static float calculateCorrCoeff(cv::cuda::GpuMat scene, cv::cuda::GpuMat templ);
+
+    static cv::Mat eulerAnglesToRotationMatrix(const cv::Point3d &angles);
+
+    static cv::Point3d
+    intersectPlaneV3(const cv::Point3d &a, const cv::Point3d &b, const cv::Point3d &p_co, const cv::Point3d &p_no,
+                     float epsilon = 1e-6);
 };
 
 
