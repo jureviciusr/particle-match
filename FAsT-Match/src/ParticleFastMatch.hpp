@@ -15,7 +15,7 @@ public:
     };
 
     enum ConversionMode {
-        HPRELU, GLF
+        HPRELU, GLF, Softmax
     };
 
     ConversionMode conversionMode = HPRELU;
@@ -111,6 +111,8 @@ public:
     void calculateSimilarity(cv::cuda::GpuMat im, Particle& particle) const;
 
     float convertProbability(float in) const;
+
+    std::string conversionModeString() const;
 };
 
 

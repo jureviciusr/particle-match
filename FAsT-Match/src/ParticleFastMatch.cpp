@@ -599,17 +599,16 @@ float hprelu(float ccoef, float lowBound) {
 float ParticleFastMatch::convertProbability(float in) const {
     switch (conversionMode) {
         case HPRELU:
-            hprelu(in, lowBound);
-            break;
+            return hprelu(in, lowBound);
         case GLF:
-            normalGLF(in, lowBound);
-            break;
+            return normalGLF(in, lowBound);
+        case Softmax:
+            return std::exp(in);
     }
 }
 
 void ParticleFastMatch::calculateSimilarity(cv::cuda::GpuMat im, Particle& particle) const {
     switch (matching) {
-
         case PearsonCorrelation: {
             float ccoef = Utilities::calculateCorrCoeff(im, templGrayGpu);
             particle.setCorrelation(ccoef);
@@ -663,4 +662,12 @@ void ParticleFastMatch::setLowBound(float lowBound) {
 
 const Particles &ParticleFastMatch::getParticles() const {
     return particles;
+}
+
+std::string ParticleFastMatch::conversionModeString() const {
+    switch (conversionMode) {
+        case HPRELU: return "HPRELU";
+        case GLF: return "GLF";
+        case Softmax: return "Softmax";
+    }
 }

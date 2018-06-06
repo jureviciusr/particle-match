@@ -106,6 +106,8 @@ int main(int ac, char *av[]) {
                     pf.initialize(entry);
                     if(vm["conversion-method"].as<std::string>() == "glf") {
                         pf.setConversionMethod(ParticleFastMatch::GLF);
+                    } else if (vm["conversion-method"].as<std::string>() == "softmax") {
+                        pf.setConversionMethod(ParticleFastMatch::Softmax);
                     }
                     pf.setCorrelationLowBound(vm["correlation-bound"].as<float>());
                     pfInitialized = true;
