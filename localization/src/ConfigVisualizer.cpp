@@ -29,12 +29,11 @@ void ConfigVisualizer::visualiseConfigs(cv::Mat image, const std::vector<fast_ma
 
 ConfigVisualizer::ConfigVisualizer() = default;
 
-void ConfigVisualizer::visualiseParticles(cv::Mat image, const Particles& particles) {
-    //cv::Mat preview = image.clone();
+void ConfigVisualizer::visualiseParticles(cv::Mat image, const Particles& particles, const cv::Point2i& offset) {
     for(auto iter = particles.rbegin(); iter != particles.rend(); iter++) {
         cv::Point2i curPoint(
-                (*iter).x,
-                (*iter).y
+                (*iter).x + offset.x,
+                (*iter).y + offset.y
         );
         cv::Scalar color(
                 (*iter).getProbability() * 255,

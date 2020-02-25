@@ -41,7 +41,7 @@ public:
             float kld_error_ = 0.8,
             int bin_size_ = 5,
             bool use_gaussian = false);
-    void visualizeParticles(cv::Mat image);
+    void visualizeParticles(cv::Mat image, const cv::Point2i& offset);
 
     vector<Point> filterParticlesAffine(const cv::Point2f &movement, cv::Mat &bestTransform);
 

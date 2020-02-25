@@ -64,25 +64,34 @@ const {
     cv::Point2i relativeLocation = prediction - startLocation;
     stringOutput << pfm->particleCount() << ",";
     stringOutput << relativeLocation.x << "," << relativeLocation.y << ",";
-    cv::Mat image = map.clone();
-    pfm->visualizeParticles(image);
-    if(!corners.empty()) {
-        line(image, corners[0], corners[1], Scalar(0, 0, 255), 4);
-        line(image, corners[1], corners[2], Scalar(0, 0, 255), 4);
-        line(image, corners[2], corners[3], Scalar(0, 0, 255), 4);
-        line(image, corners[3], corners[0], Scalar(0, 0, 255), 4);
-        cv::Point2i arrowhead((corners[0].x + corners[1].x) / 2, (corners[0].y + corners[1].y) / 2);
-        cv::Point2i center((corners[0].x + corners[2].x) / 2, (corners[0].y + corners[2].y) / 2);
-        cv::arrowedLine(image, center, arrowhead, CV_RGB(255,0,0), 20);
-    }
-    visualizeGT(metadata.mapLocation, direction, image, 50, 3, CV_RGB(255, 255, 0));
-    visualizeGT(prediction, direction, image, 50, 3, CV_RGB(255, 255, 255));
-    cv::Mat mapDisplay = image(cv::Rect(
+    cv::Point2i offset = cv::Point2i(
+            -(prediction.x - 1000),
+            -(prediction.y - 1000)
+    );
+    cv::Mat mapDisplay = map(cv::Rect(
             prediction.x - 1000,
             prediction.y - 1000,
             3000,
             2000
-    ));
+    )).clone();
+    pfm->visualizeParticles(mapDisplay, offset);
+    if(!corners.empty()) {
+        std::vector<cv::Point> newCorners = {
+                corners[0] + offset,
+                corners[1] + offset,
+                corners[2] + offset,
+                corners[3] + offset
+        };
+        line(mapDisplay, newCorners[0], newCorners[1], Scalar(0, 0, 255), 4);
+        line(mapDisplay, newCorners[1], newCorners[2], Scalar(0, 0, 255), 4);
+        line(mapDisplay, newCorners[2], newCorners[3], Scalar(0, 0, 255), 4);
+        line(mapDisplay, newCorners[3], newCorners[0], Scalar(0, 0, 255), 4);
+        cv::Point2i arrowhead((newCorners[0].x + newCorners[1].x) / 2, (newCorners[0].y + newCorners[1].y) / 2);
+        cv::Point2i center((newCorners[0].x + newCorners[2].x) / 2, (newCorners[0].y + newCorners[2].y) / 2);
+        cv::arrowedLine(mapDisplay, center, arrowhead, CV_RGB(255,0,0), 20);
+    }
+    visualizeGT(metadata.mapLocation + offset, direction, mapDisplay, 50, 3, CV_RGB(255, 255, 0));
+    visualizeGT(prediction + offset, direction, mapDisplay, 50, 3, CV_RGB(255, 255, 255));
     cv::Rect planeViewROI = cv::Rect(
             (mapDisplay.cols - 1) - planeView.cols,
             0,

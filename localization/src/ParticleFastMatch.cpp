@@ -64,8 +64,8 @@ ParticleFastMatch::ParticleFastMatch(
 
 }
 
-void ParticleFastMatch::visualizeParticles(cv::Mat image) {
-    visualizer.visualiseParticles(std::move(image), particles);
+void ParticleFastMatch::visualizeParticles(cv::Mat image, const cv::Point2i& offset) {
+    visualizer.visualiseParticles(std::move(image), particles, offset);
 }
 
 

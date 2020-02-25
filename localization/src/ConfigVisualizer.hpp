@@ -12,7 +12,7 @@ class ConfigVisualizer {
 public:
     ConfigVisualizer();
     void visualiseConfigs(cv::Mat image, const std::vector<fast_match::MatchConfig>& configs);
-    void visualiseParticles(cv::Mat image, const Particles& particles);
+    void visualiseParticles(cv::Mat image, const Particles& particles, const cv::Point2i& offset);
 
 };
 
