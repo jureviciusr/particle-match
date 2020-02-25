@@ -37,6 +37,7 @@ void ParticleFilterWorkspace::initialize(const MetadataEntry &metadata) {
     updateScale(1.0, static_cast<float>(metadata.altitude), 640);
     if(displayImage) {
         cv::namedWindow("Map", cv::WINDOW_NORMAL);
+        cv::waitKey(10);
     }
     startLocation = pfm->getPredictedLocation();
     //cv::namedWindow("BestTransform", CV_WINDOW_NORMAL);
@@ -52,12 +53,9 @@ void ParticleFilterWorkspace::update(const MetadataEntry &metadata) {
     if(!affineMatching) {
         pfm->filterParticles(movement, bestTransform);
         bestView = pfm->getBestParticleView(metadata.map);
-        //cv::Mat bestView = Utilities::extractWarpedMapPart(metadata.map, templ.size(), bestTransform);
     } else {
         corners = pfm->filterParticlesAffine(movement, bestTransform);
-        //cv::Mat bestView = Utilities::extractWarpedMapPart(metadata.map, templ.size(), bestTransform);
     }
-   // cv::Point2i prediction = pfm->getPredictedLocation();
 }
 
 bool ParticleFilterWorkspace::preview(const MetadataEntry &metadata, cv::Mat planeView, std::stringstream& stringOutput)
@@ -68,8 +66,6 @@ const {
     stringOutput << relativeLocation.x << "," << relativeLocation.y << ",";
     cv::Mat image = map.clone();
     pfm->visualizeParticles(image);
-    /*std::cout << std::setprecision(9) << "SVO COORDS: " << lat << ", " << lon << "\n";
-    std::cout << std::setprecision(9) << "GT  COORDS: " << metadata.latitude << ", " << metadata.longitude << "\n";*/
     if(!corners.empty()) {
         line(image, corners[0], corners[1], Scalar(0, 0, 255), 4);
         line(image, corners[1], corners[2], Scalar(0, 0, 255), 4);
@@ -149,7 +145,9 @@ const {
         cv::imwrite((p / filename).string(), mapDisplay);
     }
     if(displayImage) {
-        cv::imshow("Map", mapDisplay);
+        cv::Mat preview;
+        cv::resize(mapDisplay, preview, cv::Size(1200, 800));
+        cv::imshow("Map", preview);
         int key = cv::waitKey(10);
         // Break the cycle on ESC key
         return key != 27;
