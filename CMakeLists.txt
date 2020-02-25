@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.0)
 
-include_directories(FAsT-Match)
+project(particle-match)
+
+include_directories(localization)
+include_directories(dataset_reader/include)
 
 set(CMAKE_CXX_STANDARD 14)
 add_definitions(-fext-numeric-literals)
@@ -21,34 +24,34 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 
 
 set(SOURCES
-        FAsT-Match/src/FastMatcherThread.cpp
-        FAsT-Match/src/FastMatch.cpp
-        FAsT-Match/src/ParticleFastMatch.cpp
-        FAsT-Match/src/Utilities.cpp
-        FAsT-Match/src/pf/Particle.cpp
-        FAsT-Match/src/pf/Particles.cpp
-        FAsT-Match/src/AffineTransformation.cpp
-        FAsT-Match/src/ConfigVisualizer.cpp
-        FAsT-Match/src/ParticleFilterConfigExpander.cpp
-        FAsT-Match/src/ConfigExpanderBase.cpp
-        FAsT-Match/src/GridConfigExpander.cpp
-        FAsT-Match/FAsT-Match/MatchConfig.cpp
-        FAsT-Match/FAsT-Match/MatchNet.cpp)
+        localization/src/FastMatcherThread.cpp
+        localization/src/FastMatch.cpp
+        localization/src/ParticleFastMatch.cpp
+        localization/src/Utilities.cpp
+        localization/src/pf/Particle.cpp
+        localization/src/pf/Particles.cpp
+        localization/src/AffineTransformation.cpp
+        localization/src/ConfigVisualizer.cpp
+        localization/src/ParticleFilterConfigExpander.cpp
+        localization/src/ConfigExpanderBase.cpp
+        localization/src/GridConfigExpander.cpp
+        localization/FAsT-Match/MatchConfig.cpp
+        localization/FAsT-Match/MatchNet.cpp)
 
 include_directories(include)
 add_library(datasetreader SHARED
-        include/fastmatch-dataset/MetadataEntry.hpp
-        include/fastmatch-dataset/MetadataEntryReader.hpp
-        include/fastmatch-dataset/Quaternion.hpp
-        include/fastmatch-dataset/Vector3d.hpp
-        include/fastmatch-dataset/Map.hpp
-        include/fastmatch-dataset/GeotiffMap.hpp
-        src/classes/MetadataEntryReader.cpp
-        src/classes/MetadataEntry.cpp
-        src/classes/Quaternion.cpp
-        src/classes/Vector3d.cpp
-        src/classes/Map.cpp
-        src/classes/GeotiffMap.cpp
+        dataset_reader/include/fastmatch-dataset/MetadataEntry.hpp
+        dataset_reader/include/fastmatch-dataset/MetadataEntryReader.hpp
+        dataset_reader/include/fastmatch-dataset/Quaternion.hpp
+        dataset_reader/include/fastmatch-dataset/Vector3d.hpp
+        dataset_reader/include/fastmatch-dataset/Map.hpp
+        dataset_reader/include/fastmatch-dataset/GeotiffMap.hpp
+        dataset_reader/src/classes/MetadataEntryReader.cpp
+        dataset_reader/src/classes/MetadataEntry.cpp
+        dataset_reader/src/classes/Quaternion.cpp
+        dataset_reader/src/classes/Vector3d.cpp
+        dataset_reader/src/classes/Map.cpp
+        dataset_reader/src/classes/GeotiffMap.cpp
         )
 target_link_libraries(datasetreader ${OpenCV_LIBS} ${Boost_LIBRARIES} ${GeographicLib_LIBRARY} ${GDAL_LIBRARY})
 
@@ -60,7 +63,7 @@ target_link_libraries(fastmatch ${OpenCV_LIBS} ${Boost_LIBRARIES} tbb)
 #target_link_libraries(map-masker datasetreader ${CURL_LIBRARIES}
 #        ${OpenCV_LIBS} ${Boost_LIBRARIES} ${GeographicLib_LIBRARY} ${GDAL_LIBRARY})
 
-add_executable(dataset-match FAsT-Match/exec/ParticleFilterWorkspace.cpp FAsT-Match/exec/dataset-test.cpp)
+add_executable(dataset-match localization/exec/ParticleFilterWorkspace.cpp localization/exec/dataset-test.cpp)
 target_link_libraries(dataset-match fastmatch ${Boost_LIBRARIES} datasetreader)
 
 #add_executable(test-slopes FAsT-Match/exec/test-slopes.cpp)
@@ -68,7 +71,7 @@ target_link_libraries(dataset-match fastmatch ${Boost_LIBRARIES} datasetreader)
 
 SET(fastmatch_LIBRARIES AirvisionSensorComm fastmatch ${OpenCV_LIBS} tbb)
 SET(fastmatch_LIBRARY_DIR ${PROJECT_BINARY_DIR} )
-SET(fastmatch_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/FAsT-Match")
+SET(fastmatch_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/localization")
 CONFIGURE_FILE( ${CMAKE_CURRENT_SOURCE_DIR}/fastmatchConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/fastmatchConfig.cmake @ONLY IMMEDIATE )
 export( PACKAGE fastmatch )
