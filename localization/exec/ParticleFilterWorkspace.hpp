@@ -22,26 +22,32 @@ protected:
     cv::Mat bestTransform;
     float currentScale = 0.0;
     bool writeImageToDisk = false;
+    bool displayImage = true;
     std::shared_ptr<GeographicLib::LocalCartesian> svoCoordinates;
+
     static void visualizeGT(const cv::Point &loc, double yaw, cv::Mat &image, int radius, int thickness,
                             const cv::Scalar &color = CV_RGB(255, 255, 0));
+
     void updateScale(float hfov, float altitude, uint32_t imageWidth);
-    cv::Point getMovementFromSvo(const MetadataEntry& metadata);
-    bool displayImage = true;
+
+    cv::Point getMovementFromSvo(const MetadataEntry &metadata);
+
 public:
     bool isDisplayImage() const;
 
     void setDisplayImage(bool displayImage);
 
-public:
     void setWriteImageToDisk(bool writeImageToDisk);
+
     void setOutputDirectory(const string &outputDirectory);
-    void initialize(const MetadataEntry& metadata);
-    void update(const MetadataEntry& metadata);
-    bool preview(const MetadataEntry& metadata, cv::Mat image, std::stringstream& stringOutput) const;
+
+    void initialize(const MetadataEntry &metadata);
+
+    void update(const MetadataEntry &metadata);
+
+    bool preview(const MetadataEntry &metadata, cv::Mat image, std::stringstream &stringOutput) const;
 
     Mat bestView;
-
 
     bool isAffineMatching() const;
 

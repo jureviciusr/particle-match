@@ -453,17 +453,10 @@ std::vector<cv::Point> ParticleFastMatch::filterParticles(const cv::Point2f &mov
         // Predict next state
         newParticles[particleIndex].propagate(movement);
         // Calculate particle belief
-        //double probability;
-        //cv::Mat transform = evaluateParticle(newParticles[particleIndex], i, probability);
         i++;
-        /*if(probability < bestProbability) {
-            bestTransform = transform;
-            bestProbability = probability;
-        }*/
-
         std::string bin = newParticles[particleIndex].serialize(binSize);
         particleIndex++;
-        if (!(std::find(bins.begin(), bins.end(), bin) != bins.end())) {
+        if (std::find(bins.begin(), bins.end(), bin) == bins.end()) {
             // Mark bin as taken
             bins.push_back(bin);
             // Update number with support
