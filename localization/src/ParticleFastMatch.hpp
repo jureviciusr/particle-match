@@ -5,8 +5,10 @@
 #pragma once
 
 #include "FastMatch.hpp"
-#include "pf/Particles.hpp"
+#include "Particles.hpp"
 #include "AffineTransformation.hpp"
+#include "Utilities.hpp"
+#include "ImageSample.hpp"
 
 class ParticleFastMatch : public fast_match::FAsTMatch {
 public:
@@ -21,15 +23,24 @@ public:
     ConversionMode conversionMode = HPRELU;
 
     cv::Mat templDescriptors;
-    cv::cuda::GpuMat templGpuDescriptors;
 
     MatchMode matching = PearsonCorrelation;
 
     cv::Ptr<cv::Feature2D> detector;
 
-    //cv::Ptr<cv::cuda::Feature2DAsync> detectorGPU;
+#ifdef USE_CV_GPU
+    cv::cuda::GpuMat templGpuDescriptors;
+
+//cv::Ptr<cv::cuda::Feature2DAsync> detectorGPU;
 
     cv::Ptr<cv::cuda::DescriptorMatcher> matcher;
+
+    void calculateSimilarity(cv::cuda::GpuMat im, Particle& particle) const;
+#endif
+
+    std::vector<cv::Point> samplingPoints;
+
+    ImageSample templateSample;
 
     ParticleFastMatch(
             const cv::Point2i& startLocation,
@@ -107,8 +118,6 @@ public:
     void setScale(float min, float max, uint32_t searchSteps = 5);
 
     cv::Mat getBestParticleView(cv::Mat map);
-
-    void calculateSimilarity(cv::cuda::GpuMat im, Particle& particle) const;
 
     float convertProbability(float in) const;
 

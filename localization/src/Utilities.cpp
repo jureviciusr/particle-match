@@ -115,6 +115,7 @@ cv::Mat Utilities::extractWarpedMapPart(
     return destination;
 }
 
+#ifdef USE_CV_GPU
 cv::cuda::GpuMat Utilities::extractWarpedMapPart(
         cv::cuda::GpuMat map,
         const cv::Size &templ_size,
@@ -131,6 +132,7 @@ cv::cuda::GpuMat Utilities::extractWarpedMapPart(
     cv::cuda::warpAffine(mapPart, destination, T, templ_size, CV_INTER_NN | CV_WARP_INVERSE_MAP);
     return destination;
 }
+#endif
 
 double Utilities::calculateCorrelation(cv::Mat scene, cv::Mat templ) {
     cv::Scalar avgPixels(cv::sum(scene) / (scene.cols * scene.rows));
@@ -156,6 +158,7 @@ float Utilities::calculateCorrCoeff(cv::Mat scene, cv::Mat templ) {
     return result.at<float>(0, 0);
 }
 
+#ifdef USE_CV_GPU
 float Utilities::calculateCorrCoeff(cv::cuda::GpuMat scene, cv::cuda::GpuMat templ) {
     cv::cuda::GpuMat result(cv::Size(1, 1), CV_32FC1);
     cv::Mat resultL(cv::Size(1, 1), CV_32FC1);
@@ -164,6 +167,7 @@ float Utilities::calculateCorrCoeff(cv::cuda::GpuMat scene, cv::cuda::GpuMat tem
     result.download(resultL);
     return resultL.at<float>(0, 0);
 }
+#endif
 
 cv::Mat Utilities::photometricNormalization(cv::Mat scene, cv::Mat templ) {
     double sum_x = cv::sum(scene)[0];
@@ -321,6 +325,7 @@ cv::Mat Utilities::extractMapPart(const cv::Mat &map,
     return image;
 }
 
+#ifdef USE_CV_GPU
 cv::cuda::GpuMat Utilities::extractMapPart(const cv::cuda::GpuMat &map,
                                   const cv::Size &size, const cv::Point &position, double angle, float scale) {
     // Calculate how much data to crop out
@@ -339,6 +344,7 @@ cv::cuda::GpuMat Utilities::extractMapPart(const cv::cuda::GpuMat &map,
     view(rotationRoi).copyTo(image);
     return image;
 }
+#endif
 
 cv::Mat Utilities::eulerAnglesToRotationMatrix(const cv::Point3d& angles) {
     cv::Mat R_x = (cv::Mat_<double>(3, 3) << 1.0, 0.0, 0.0,
@@ -365,6 +371,29 @@ cv::Point3d Utilities::intersectPlaneV3(const cv::Point3d& a, const cv::Point3d&
     } else {
         return cv::Point3d();
     }
+}
+
+std::string Utilities::matType(int type) {
+    std::string r;
+
+    unsigned char depth = type & CV_MAT_DEPTH_MASK;
+    unsigned char chans = 1 + (type >> CV_CN_SHIFT);
+
+    switch ( depth ) {
+        case CV_8U:  r = "8U"; break;
+        case CV_8S:  r = "8S"; break;
+        case CV_16U: r = "16U"; break;
+        case CV_16S: r = "16S"; break;
+        case CV_32S: r = "32S"; break;
+        case CV_32F: r = "32F"; break;
+        case CV_64F: r = "64F"; break;
+        default:     r = "User"; break;
+    }
+
+    r += "C";
+    r += (chans+'0');
+
+    return r;
 }
 
 

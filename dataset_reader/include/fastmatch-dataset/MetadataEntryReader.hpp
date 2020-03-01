@@ -31,7 +31,7 @@ private:
 
     GeoMapPtr map = nullptr;
 
-    uint32_t skipRate = 0;
+    uint32_t skipRate = 1;
 
     uint64_t lineCounter = 0;
 

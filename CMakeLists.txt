@@ -8,6 +8,12 @@ include_directories(dataset_reader/include)
 set(CMAKE_CXX_STANDARD 14)
 add_definitions(-fext-numeric-literals)
 
+option(USE_OPENCV_CUDA "Enable this flag to compile features requiring GPU support" OFF)
+
+if(${USE_OPENCV_CUDA})
+    add_definitions(-DUSE_CV_GPU=1)
+endif()
+
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 FIND_PACKAGE( Boost 1.40 COMPONENTS system program_options filesystem thread REQUIRED )
@@ -28,13 +34,13 @@ set(SOURCES
         localization/src/FastMatch.cpp
         localization/src/ParticleFastMatch.cpp
         localization/src/Utilities.cpp
-        localization/src/pf/Particle.cpp
-        localization/src/pf/Particles.cpp
+        localization/src/Particle.cpp
+        localization/src/Particles.cpp
         localization/src/AffineTransformation.cpp
         localization/src/ConfigVisualizer.cpp
-        localization/src/ParticleFilterConfigExpander.cpp
         localization/src/ConfigExpanderBase.cpp
         localization/src/GridConfigExpander.cpp
+        localization/src/ImageSample.cpp
         localization/FAsT-Match/MatchConfig.cpp
         localization/FAsT-Match/MatchNet.cpp)
 
@@ -65,6 +71,10 @@ target_link_libraries(fastmatch ${OpenCV_LIBS} ${Boost_LIBRARIES} tbb)
 
 add_executable(dataset-match localization/exec/ParticleFilterWorkspace.cpp localization/exec/dataset-test.cpp)
 target_link_libraries(dataset-match fastmatch ${Boost_LIBRARIES} datasetreader)
+
+add_executable(image-sampler localization/exec/test-image-sampling.cpp localization/src/ImageSample.cpp)
+target_link_libraries(image-sampler fastmatch ${Boost_LIBRARIES} datasetreader)
+target_compile_options(image-sampler PRIVATE -DUSE_TBB=1)
 
 #add_executable(test-slopes FAsT-Match/exec/test-slopes.cpp)
 #target_link_libraries(test-slopes ${Boost_LIBRARIES})

@@ -7,9 +7,9 @@
 #include <utility>
 #include "ParticleFastMatch.hpp"
 #include "Utilities.hpp"
-#include "AffineTransformation.hpp"
 #include <opencv2/features2d.hpp>
 #include <tbb/task_scheduler_init.h>
+#include <tbb/parallel_for_each.h>
 
 
 #define WITHIN(val, top_left, bottom_right) (\
@@ -54,13 +54,13 @@ ParticleFastMatch::ParticleFastMatch(
             detector = cv::BRISK::create(20);
             break;
         case ORBMatch:
-            detector = cv::cuda::ORB::create();//cv::ORB::create();
+            detector = cv::ORB::create();
             break;
     }
-    if(!detector.empty()) {
+    /*if(!detector.empty()) {
         //matcher = std::make_shared<cv::cuda::DescriptorMatcher>();
         matcher = cv::cuda::DescriptorMatcher::createBFMatcher(detector->defaultNorm());
-    }
+    }*/
 
 }
 
@@ -110,7 +110,7 @@ vector<Point2f> ParticleFastMatch::filterParticles() {
 }
 */
 
-
+#ifdef USE_CV_GPU
 vector<Point> ParticleFastMatch::filterParticlesAffine(const cv::Point2f &movement, cv::Mat &bestTransform) {
     int i = 0;
     Particles newParticles = {};
@@ -156,7 +156,8 @@ vector<Point> ParticleFastMatch::filterParticlesAffine(const cv::Point2f &moveme
             bestTransform = transform;
             bestProbability = probability;
         }
-        cv::cuda::GpuMat bestView = Utilities::extractWarpedMapPart(imageGrayGpu, templ.size(), transform);
+        cv::Mat bestView = Utilities::extractWarpedMapPart(imageGray, templ.size(), transform);
+        //cv::cuda::GpuMat bestView = Utilities::extractWarpedMapPart(imageGrayGpu, templ.size(), transform);
         calculateSimilarity(bestView, newParticles[ip]);
     });
 
@@ -164,7 +165,7 @@ vector<Point> ParticleFastMatch::filterParticlesAffine(const cv::Point2f &moveme
     particles.normalize();
     return Utilities::calcCorners(image.size(), templ.size(), bestTransform);
 }
-
+#endif
 
 vector<Point> ParticleFastMatch::evaluateParticlesv2() {
     return particles.evaluate(image, templ, no_of_points);
@@ -407,20 +408,33 @@ void ParticleFastMatch::setImage(const Mat &image) {
     initPaddedImage();
 }
 
-void ParticleFastMatch::setTemplate(const Mat &templ) {
-    fast_match::FAsTMatch::setTemplate(templ);
+void ParticleFastMatch::setTemplate(const Mat &templ_) {
+    fast_match::FAsTMatch::setTemplate(templ_);
     switch (matching) {
+#ifdef USE_CV_GPU
         case BriskMatch:
         case ORBMatch: {
             std::vector<cv::KeyPoint> keypointsA;
             detector->detect(templGrayGpu, keypointsA);
             detector->compute(templGrayGpu, keypointsA, templGpuDescriptors);
-            //templGpuDescriptors.upload(templDescriptors);
-            /*if(!matcher->empty()) {
-                matcher->clear();
-            }
-            matcher->add({templGpuDescriptors});*/
             break;
+        }
+#endif
+        case PearsonCorrelation: {
+            if (samplingPoints.empty()) {
+                for (int y_ = 0; y_ < (float) (templ_.rows * templ_.cols) * 0.1f; y_++) {
+                    samplingPoints.emplace_back(
+                            (int) (Utilities::uniform_dist() * templ_.cols),
+                            (int) (Utilities::uniform_dist() * templ_.rows)
+                    );
+                }
+
+                // Sorting points in an order that might avoid potential cache misses
+                std::sort(samplingPoints.begin(), samplingPoints.end(),[] (const cv::Point& a, const cv::Point& b) {
+                    return a.y == b.y ? a.x < b.x : a.y < b.y;
+                });
+            }
+            templateSample = ImageSample(FAsTMatch::templGray, samplingPoints, templGrayAvg);
         }
         default: break;
     }
@@ -439,12 +453,10 @@ void ParticleFastMatch::setScale(float min, float max, uint32_t searchSteps) {
 }
 
 std::vector<cv::Point> ParticleFastMatch::filterParticles(const cv::Point2f &movement, cv::Mat &bestTransform) {
-    int i = 0;
     Particles newParticles = {};
     int     support_particles = 0,
             samplingCount = minParticles;
-    std::vector < std::string > bins;
-    double bestProbability = +INFINITY;
+    std::vector <std::string> bins;
     std::sort(particles.begin(), particles.end(), std::less<>());
     unsigned long particleIndex = 0;
     do {
@@ -452,8 +464,6 @@ std::vector<cv::Point> ParticleFastMatch::filterParticles(const cv::Point2f &mov
         newParticles.addParticle(particles.sample());
         // Predict next state
         newParticles[particleIndex].propagate(movement);
-        // Calculate particle belief
-        i++;
         std::string bin = newParticles[particleIndex].serialize(binSize);
         particleIndex++;
         if (std::find(bins.begin(), bins.end(), bin) == bins.end()) {
@@ -473,38 +483,23 @@ std::vector<cv::Point> ParticleFastMatch::filterParticles(const cv::Point2f &mov
                 }
             }
         }
-    } while (newParticles.size() < samplingCount);
-    for (auto& particle : newParticles) {
-        cv::cuda::GpuMat bestView = Utilities::extractMapPart(imageGrayGpu, templ.size(),
-                                                              particle.toPoint(),
-                                                              particle.getDirectionDegrees(),
-                                                              1.f / particle.getScale()
-        );
-        calculateSimilarity(bestView, particle);
-    }
-    //tbb::parallel_for(0, (int) newParticles.size(), 1, [&] (int ip) {
-    //    cv::cuda::GpuMat bestView = Utilities::extractMapPart(imageGrayGpu, templ.size(),
-    //                                                 newParticles[ip].toPoint(),
-    //                                                 newParticles[ip].getDirectionDegrees(),
-    //                                                 1.f / newParticles[ip].getScale()
-    //    );
-    //    newParticles[ip].setProbability(calculateSimilarity(bestView));
-    //});
+    } while (particleIndex < samplingCount);
 
+    tbb::parallel_for_each(newParticles.begin(), newParticles.end(), [&] (Particle& particle) {
+        cv::Mat rot_mat = particle.mapTransformation();
+        ImageSample mapSample(imageGray, samplingPoints, rot_mat, particle.toPoint());
+        auto ccoef = (float) templateSample.calcSimilarity(mapSample);
+        particle.setCorrelation(ccoef);
+        particle.setProbability(convertProbability(ccoef));
+    });
+    std::sort(particles.begin(), particles.end(), std::less<>());
     particles.assign(newParticles.begin(), newParticles.end());
     particles.normalize();
-    //return Utilities::calcCorners(image.size(), templ.size(), bestTransform);
-    //bestTransform = particles.front().staticTransformation();
-    //return Utilities::calcCorners(image.size(), templ.size(), bestTransform);
-    return {};
+    return particles.front().getCorners();
 }
 
 cv::Mat ParticleFastMatch::getBestParticleView(cv::Mat map) {
-    return Utilities::extractMapPart(map, templ.size(),
-                                                 particles.back().toPoint(),
-                                                 particles.back().getDirectionDegrees(),
-                                                 1.f / particles.back().getScale());
-
+    return particles.front().getMapImage(imageGray, cv::Size(640, 480));
 }
 
 float ParticleFastMatch::calculateSimilarity(cv::Mat im) const {
@@ -520,6 +515,7 @@ float ParticleFastMatch::calculateSimilarity(cv::Mat im) const {
             }
             return prob;
         }
+#ifdef USE_CV_GPU
         case ORBMatch:
         case BriskMatch: {
             using namespace std::chrono;
@@ -555,6 +551,7 @@ float ParticleFastMatch::calculateSimilarity(cv::Mat im) const {
 
             return weight / (float) templDescriptors.rows;
         }
+#endif
     }
 }
 
@@ -599,7 +596,7 @@ float ParticleFastMatch::convertProbability(float in) const {
             return std::exp(in);
     }
 }
-
+#ifdef USE_CV_GPU
 void ParticleFastMatch::calculateSimilarity(cv::cuda::GpuMat im, Particle& particle) const {
     switch (matching) {
         case PearsonCorrelation: {
@@ -644,7 +641,7 @@ void ParticleFastMatch::calculateSimilarity(cv::cuda::GpuMat im, Particle& parti
         }
     }
 }
-
+#endif
 float ParticleFastMatch::getLowBound() const {
     return lowBound;
 }

@@ -39,12 +39,17 @@ namespace fast_match {
         int no_of_points = 0;
         int level = 0;
         cv::Mat original_image;
+        Mat imageGray, templGray;
+        float imageGrayAvg = 0.0;
 
     protected:
-        Mat imageGray, templGray;
-        cv::cuda::GpuMat imageGrayGpu;
+#ifdef USE_CV_GPU
+        cv::cuda::GpuMat imageGrayGpu, templGrayGpu;
+#endif
         Mat image, templ;
-        cv::cuda::GpuMat templGrayGpu;
+        float templAvg = 0.0;
+        float imageAvg = 0.0;
+        float templGrayAvg = 0.0;
 
     public:
         virtual void setImage(const Mat &image);

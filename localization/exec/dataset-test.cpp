@@ -22,8 +22,8 @@ int main(int ac, char *av[]) {
             ("write-images,w", "Write preview images to disk")
             ("affine-matching,a", "Perform affine image matching when evaluating particles")
             ("preview,p", "Display preivew image using imshow")
-            ("correlation-bound,c", po::value<float>()->default_value(0.1f), "Correlation activation bound")
-            ("conversion-method,M", po::value<std::string>()->default_value("hprelu"), "Correlation to probability conversion "
+            ("correlation-bound,c", po::value<float>()->default_value(0.2f), "Correlation activation bound")
+            ("conversion-method,M", po::value<std::string>()->default_value("glf"), "Correlation to probability conversion "
                                                                                        "function: hprelu or glf")
             ("write-histograms,H", "Write correlation histograms to a separate CSV file")
             ("help,h", "produce help message");

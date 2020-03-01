@@ -37,7 +37,7 @@ float Particle::getProbability() const {
 void Particle::setProbability(float probability) {
     accumulatedProbability += probability;
     oldProbabilities.push_back(probability);
-    if(oldProbabilities.size() >= 5) {
+    if (oldProbabilities.size() >= 5) {
         accumulatedProbability -= oldProbabilities[0];
         oldProbabilities.erase(oldProbabilities.begin());
     } else {
@@ -51,8 +51,8 @@ Particle::Particle(int x, int y) : x(x), y(y), probability(1.0) {
     updateConfigs();
 }
 
-const vector<fast_match::MatchConfig> & Particle::getConfigs(int id) {
-    for (auto& config : configs) {
+const vector<fast_match::MatchConfig> &Particle::getConfigs(int id) {
+    for (auto &config : configs) {
         config.setId(id);
     }
     return configs;
@@ -65,17 +65,17 @@ void Particle::propagate(const cv::Point2f &movement) {
     float min_movement = 10.0f;
     float min_noise_level = 5.0f;
     // This is the case when the odometry is lost
-    if(movement.x == 0.f && movement.y == 0.f) {
+    if (movement.x == 0.f && movement.y == 0.f) {
         m.x = static_cast<float>(Utilities::gausian_noise(1) * min_movement * alpha);
         m.y = static_cast<float>(Utilities::gausian_noise(1) * min_movement * alpha);
     } else {
         // Do not trust in noise level measurements
-        if(movement.x < min_noise_level) {
+        if (movement.x < min_noise_level) {
             m.x += Utilities::gausian_noise(alpha) * min_noise_level;
         } else {
             m.x += Utilities::gausian_noise(alpha) * m.x;
         }
-        if(movement.y < min_noise_level) {
+        if (movement.y < min_noise_level) {
             m.y += Utilities::gausian_noise(alpha) * min_noise_level;
         } else {
             m.y += Utilities::gausian_noise(alpha) * m.y;
@@ -86,7 +86,7 @@ void Particle::propagate(const cv::Point2f &movement) {
     updateConfigs();
 }
 
-void Particle::setMapDimensions(const cv::Size& dims) {
+void Particle::setMapDimensions(const cv::Size &dims) {
     mapCenter.y = dims.height / 2;
     mapCenter.x = dims.width / 2;
 }
@@ -108,11 +108,11 @@ void Particle::updateConfigs() {
     unsigned long nr2_steps = r2_rotations.size();
 
     auto rotations = r_initial;
-    for(float& rotation : rotations) {
+    for (float &rotation : rotations) {
         rotation += Particle::direction;
     }
 
-    for(uint64_t sx = 0; sx < scale_steps; sx++) {
+    for (uint64_t sx = 0; sx < scale_steps; sx++) {
         for (uint64_t sy = 0; sy < scale_steps; sy++) {
             for (int r1 = 0; r1 < rotation_steps; r1++) {
                 for (int r2 = 0; r2 < nr2_steps; r2++) {
@@ -143,7 +143,7 @@ double Particle::evaluate(cv::Mat &image, cv::Mat &templ, cv::Mat &xs, cv::Mat &
     return best_distance;
 }
 
-std::vector<cv::Mat> Particle::getAffines(const cv::Size& imageSize, const cv::Size& templSize) {
+std::vector<cv::Mat> Particle::getAffines(const cv::Size &imageSize, const cv::Size &templSize) {
     std::vector<bool> insiders;
     std::vector<cv::Mat> affines = Utilities::configsToAffine(configs, insiders, imageSize, templSize);
 
@@ -162,13 +162,13 @@ const Mat &Particle::getBestTransform() const {
 }
 
 void Particle::setMinimalProbability(float probability) {
-    if(Particle::probability > probability) {
+    if (Particle::probability > probability) {
         Particle::probability = probability;
     }
 }
 
 void Particle::setMaximalProbability(float probability) {
-    if(Particle::probability < probability) {
+    if (Particle::probability < probability) {
         Particle::probability = probability;
     }
 }
@@ -222,10 +222,12 @@ cv::Point2i Particle::toPoint() const {
 }
 
 cv::Mat Particle::staticTransformation() const {
-    cv::Mat T = cv::getRotationMatrix2D(cv::Point(320, 240), getDirectionDegrees() , getScale());
-    //T.at<float>(0, 2) += (float) x;
-   // T.at<float>(1, 2) += (float) y;
+    cv::Mat T = cv::getRotationMatrix2D(cv::Point(320, 240), getDirectionDegrees(), getScale());
     return T;
+}
+
+cv::Mat Particle::mapTransformation() const {
+    return cv::getRotationMatrix2D(toPoint(), getDirectionDegrees() - 75.0f, getScale());
 }
 
 float Particle::getScale() const {
@@ -238,6 +240,62 @@ float Particle::getCorrelation() const {
 
 void Particle::setCorrelation(float correlation) {
     Particle::correlation = correlation;
+}
+
+cv::Mat Particle::getMapImage(const cv::Mat &map, const cv::Size &imsize) const {
+
+    assert(map.type() == CV_8UC1);
+
+    cv::Mat T = mapTransformation();
+    double m11 = T.at<double>(0, 0),
+            m12 = T.at<double>(0, 1),
+            m13 = T.at<double>(0, 2),
+            m21 = T.at<double>(1, 0),
+            m22 = T.at<double>(1, 1),
+            m23 = T.at<double>(1, 2);
+    cv::Mat preview(imsize, CV_8UC1, cv::Scalar(255));
+    int halfwidth = imsize.width / 2;
+    int halfheight = imsize.height / 2;
+    for (int y_ = -halfheight, cy = 0; y_ < halfheight; y_++, cy++) {
+        for (int x_ = -halfwidth, cx = 0; x_ < halfwidth; x_++, cx++) {
+            cv::Point2i p(x_ + x, y_ + y);
+            // Transform points
+            cv::Point2i pTran(
+                    m11 * p.x + m12 * p.y + m13,
+                    m21 * p.x + m22 * p.y + m23
+            );
+            preview.at<uint8_t>(cv::Point2i(cx, cy)) = map.at<uint8_t>(pTran);
+        }
+    }
+    return preview;
+}
+
+std::vector<cv::Point> Particle::getCorners() const {
+    cv::Mat T = mapTransformation();
+    double m11 = T.at<double>(0, 0),
+            m12 = T.at<double>(0, 1),
+            m13 = T.at<double>(0, 2),
+            m21 = T.at<double>(1, 0),
+            m22 = T.at<double>(1, 1),
+            m23 = T.at<double>(1, 2);
+    return {
+            cv::Point2i(
+                    m11 * (x - 320) + m12 * (y - 240) + m13,
+                    m21 * (x - 320) + m22 * (y - 240) + m23
+            ),
+            cv::Point2i(
+                    m11 * (x + 320) + m12 * (y - 240) + m13,
+                    m21 * (x + 320) + m22 * (y - 240) + m23
+            ),
+            cv::Point2i(
+                    m11 * (x + 320) + m12 * (y + 240) + m13,
+                    m21 * (x + 320) + m22 * (y + 240) + m23
+            ),
+            cv::Point2i(
+                    m11 * (x - 320) + m12 * (y + 240) + m13,
+                    m21 * (x - 320) + m22 * (y + 240) + m23
+            )
+    };
 }
 
 Particle::Particle(const Particle &a) = default;

@@ -30,6 +30,7 @@ public:
     cv::Mat imageBuffer;
 
     cv::Mat getImage() const;
+
     cv::Mat getImageSharpened(bool smooth = false) const;
 
     cv::Mat getImageColored() const;

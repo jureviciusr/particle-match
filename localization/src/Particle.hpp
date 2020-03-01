@@ -67,6 +67,12 @@ public:
     double getDirectionDegrees() const;
 
     float getScale() const;
+
+    cv::Mat mapTransformation() const;
+
+    cv::Mat getMapImage(const cv::Mat& map, const cv::Size& imsize) const;
+
+    std::vector<cv::Point> getCorners() const;
 };
 
 

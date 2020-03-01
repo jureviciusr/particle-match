@@ -6,7 +6,7 @@
 
 
 #include <FAsT-Match/MatchConfig.h>
-#include <src/pf/Particles.hpp>
+#include <src/Particles.hpp>
 
 class ConfigVisualizer {
 public:

@@ -11,6 +11,8 @@
 namespace fs = boost::filesystem;
 
 void ParticleFilterWorkspace::initialize(const MetadataEntry &metadata) {
+    std::cout << "Initializing...";
+    std::cout.flush();
     direction = metadata.imuOrientation.toRPY().getZ();
     Particle::setDirection(direction);
     svoCurPosition = metadata.mapLocation;
@@ -32,15 +34,15 @@ void ParticleFilterWorkspace::initialize(const MetadataEntry &metadata) {
     );
     cv::Mat templ = metadata.getImageColored();
     pfm->setTemplate(templ);
-    pfm->setImage(metadata.map.clone());
+    pfm->setImage(metadata.map);
     map = metadata.map;
-    updateScale(1.0, static_cast<float>(metadata.altitude), 640);
+    updateScale(1.0, static_cast<float>(metadata.altitude), templ.cols);
     if(displayImage) {
         cv::namedWindow("Map", cv::WINDOW_NORMAL);
         cv::waitKey(10);
     }
     startLocation = pfm->getPredictedLocation();
-    //cv::namedWindow("BestTransform", CV_WINDOW_NORMAL);
+    std::cout << " done!" << std::endl;
 }
 
 void ParticleFilterWorkspace::update(const MetadataEntry &metadata) {
@@ -51,10 +53,15 @@ void ParticleFilterWorkspace::update(const MetadataEntry &metadata) {
     cv::Mat templ = metadata.getImageColored();
     pfm->setTemplate(templ);
     if(!affineMatching) {
-        pfm->filterParticles(movement, bestTransform);
+        corners = pfm->filterParticles(movement, bestTransform);
         bestView = pfm->getBestParticleView(metadata.map);
     } else {
+#ifdef USE_CV_GPU
         corners = pfm->filterParticlesAffine(movement, bestTransform);
+#else
+        std::cerr << "Affine particle matching is available with GPU support only at this moment" << std::endl;
+        exit(1);
+#endif
     }
 }
 
@@ -132,9 +139,13 @@ const {
                 bestView.cols,
                 bestView.rows
         );
-        bestView.copyTo(mapDisplay(bestParticleROI));
+        if (bestView.channels() == 1) {
+            cv::cvtColor(bestView, mapDisplay(bestParticleROI), cv::COLOR_GRAY2BGR);
+        } else if (bestView.channels() == 3) {
+            bestView.copyTo(mapDisplay(bestParticleROI));
+        }
         cv::rectangle(mapDisplay, bestParticleROI, Scalar(0,0,255));
-        cv::putText(mapDisplay, "Best particle view",
+        cv::putText(mapDisplay, "Best particle " + std::to_string(pfm->getParticles().back().getCorrelation()),
                     cv::Point(bestParticleROI.x + 10, bestParticleROI.y + textOffset),
                     fontFace, fontScale, Scalar::all(255), thickness, 8);
     }

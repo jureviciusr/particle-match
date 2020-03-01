@@ -397,16 +397,26 @@ namespace fast_match {
         } else {
             FAsTMatch::image = Utilities::preprocessImage(image);
         }
+        imageAvg = cv::sum(FAsTMatch::image).val[0] / ((float) image.cols * (float) image.rows);
+        imageGrayAvg = cv::sum(FAsTMatch::imageGray).val[0] / ((float) image.cols * (float) image.rows);
+        GaussianBlur( imageGray, imageGray, Size( 9, 9 ), 0, 0 );
+#ifdef USE_CV_GPU
         imageGrayGpu.upload(imageGray);
+#endif
     }
 
-    void FAsTMatch::setTemplate(const Mat &templ) {
-        if(templ.type() == CV_8UC3) {
-            cv::cvtColor(templ, templGray, CV_BGR2GRAY);
+    void FAsTMatch::setTemplate(const Mat &templ_) {
+        if(templ_.type() == CV_8UC3) {
+            cv::cvtColor(templ_, templGray, CV_BGR2GRAY);
             FAsTMatch::templ = Utilities::preprocessImage(templGray);
         } else {
             FAsTMatch::templ = Utilities::preprocessImage(templ);
         }
+        templAvg = cv::sum(FAsTMatch::templ).val[0] / ((float) templ.cols * (float) templ.rows);
+        templGrayAvg = cv::sum(FAsTMatch::templGray).val[0] / ((float) templ.cols * (float) templ.cols);
+        GaussianBlur( templGray, templGray, Size( 9, 9 ), 0, 0 );
+#ifdef USE_CV_GPU
         templGrayGpu.upload(templGray);
+#endif
     }
 }
