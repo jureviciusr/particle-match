@@ -35,5 +35,5 @@ bash download_data.sh
 
 # TODO List
 
-1. Remove dependency on GPU
-2. Speed up runtime by using FastMATCH approach to calculate similarity: random pixel sampling with photometric invariance
+~~1. Remove dependency on GPU~~
+~~2. Speed up runtime by using FastMATCH approach to calculate similarity: random pixel sampling with photometric invariance~~
