@@ -2,6 +2,17 @@
 // Created by rokas on 17.6.20.
 //
 
+#include "Utilities.hpp"
+
+#include <FAsT-Match/MatchConfig.h>
+
+#include <opencv2/imgproc.hpp>
+
+#include <chrono>
+#include <random>
+
+#include <tbb/parallel_for.h>
+
 #define WITHIN(val, top_left, bottom_right) (\
             val.x > top_left.x && val.y > top_left.y && \
             val.x < bottom_right.x && val.y < bottom_right.y )
@@ -13,11 +24,6 @@ double zeroIfNan(double x) {
     return 0;
 }
 
-#include <opencv2/imgproc.hpp>
-#include <FAsT-Match/MatchConfig.h>
-#include <tbb/parallel_for.h>
-#include <chrono>
-#include "Utilities.hpp"
 
 using namespace cv;
 
