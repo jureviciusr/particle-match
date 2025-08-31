@@ -519,6 +519,46 @@ float ParticleFastMatch::calculateSimilarity(cv::Mat im) const {
             }
             return prob;
         }
+        case ORBMatch: {
+            using namespace std::chrono;
+
+            std::vector<cv::KeyPoint> keypointsA, keypointsB;
+            cv::Mat descriptorsA, descriptorsB;
+            high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+            detector->detectAndCompute(im, cv::Mat(), keypointsA, descriptorsA);
+            detector->detectAndCompute(templ, cv::Mat(), keypointsB, descriptorsB);
+
+            cv::BFMatcher matcher(cv::NORM_HAMMING, true);
+
+            std::vector<cv::DMatch> matches;
+            matcher.match(descriptorsA, descriptorsB, matches);
+
+            // 3. Extract point coordinates
+            std::vector<cv::Point2f> pts1, pts2;
+            for (auto& m : matches) {
+                pts1.push_back(keypointsA[m.queryIdx].pt);
+                pts2.push_back(keypointsB[m.trainIdx].pt);
+            }
+
+            // 4. Estimate homography with RANSAC
+            std::vector<unsigned char> inliersMask(pts1.size());
+            cv::Mat H = cv::findHomography(pts1, pts2, cv::RANSAC, 3.0, inliersMask);
+
+            if (H.empty()) {
+                std::cerr << "Homography estimation failed!\n";
+                return 0.0;
+            }
+
+            // 5. Count inliers
+            int inliersCount = 0;
+            for (size_t i = 0; i < inliersMask.size(); i++)
+                if (inliersMask[i]) inliersCount++;
+
+            // 6. Inlier ratio is our probability
+            return static_cast<double>(inliersCount) / static_cast<double>(matches.size());
+        }
+
 #ifdef USE_CV_GPU
         case ORBMatch:
         case BriskMatch: {
