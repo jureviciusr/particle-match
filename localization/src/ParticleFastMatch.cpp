@@ -11,7 +11,7 @@
 
 #include <opencv2/features2d.hpp>
 
-#include <tbb/task_scheduler_init.h>
+#include <tbb/task_scheduler_observer.h>
 #include <tbb/parallel_for_each.h>
 #include <tbb/parallel_for.h>
 

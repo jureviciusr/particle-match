@@ -392,7 +392,7 @@ namespace fast_match {
     void FAsTMatch::setImage(const Mat &image) {
         FAsTMatch::original_image = image;
         if(image.type() == CV_8UC3) {
-            cv::cvtColor(image, imageGray, CV_BGR2GRAY);
+            cv::cvtColor(image, imageGray, cv::COLOR_BGR2GRAY);
             FAsTMatch::image = Utilities::preprocessImage(imageGray);
         } else {
             FAsTMatch::image = Utilities::preprocessImage(image);
@@ -407,7 +407,7 @@ namespace fast_match {
 
     void FAsTMatch::setTemplate(const Mat &templ_) {
         if(templ_.type() == CV_8UC3) {
-            cv::cvtColor(templ_, templGray, CV_BGR2GRAY);
+            cv::cvtColor(templ_, templGray, cv::COLOR_BGR2GRAY);
             FAsTMatch::templ = Utilities::preprocessImage(templGray);
         } else {
             FAsTMatch::templ = Utilities::preprocessImage(templ);

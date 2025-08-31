@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <opencv/cv.h>
+#include <opencv2/opencv.hpp>
 #include "../FAsT-Match/MatchConfig.h"
 
 class Utilities {

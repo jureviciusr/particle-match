@@ -3,7 +3,7 @@
 //
 
 #include <opencv2/imgcodecs.hpp>
-#include <opencv/cv.hpp>
+#include <opencv2/opencv.hpp>
 #include "fastmatch-dataset/MetadataEntry.hpp"
 
 cv::Mat MetadataEntry::getImage() const {

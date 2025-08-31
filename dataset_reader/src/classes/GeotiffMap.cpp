@@ -8,7 +8,7 @@
 #include <iostream>
 #include <regex>
 #include <opencv2/core.hpp>
-#include <opencv/cv.hpp>
+#include <opencv2/opencv.hpp>
 
 #include "fastmatch-dataset/GeotiffMap.hpp"
 

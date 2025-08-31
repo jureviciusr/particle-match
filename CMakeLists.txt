@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.12)
 
 project(particle-match)
 
@@ -18,7 +18,19 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 FIND_PACKAGE( Boost 1.40 COMPONENTS system program_options filesystem thread REQUIRED )
 find_package( OpenCV REQUIRED )
-find_package( GeographicLib REQUIRED )
+
+# Look for the library and headers manually
+find_library(GeographicLib_LIBRARY
+        NAMES GeographicLib
+        PATHS /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu/
+        REQUIRED
+)
+
+find_path(GeographicLib_INCLUDE_DIR
+        NAMES GeographicLib/Config.h
+        PATHS /usr/local/include /usr/include
+        REQUIRED
+)
 find_package( Eigen3 REQUIRED )
 find_package(GDAL REQUIRED)
 find_package(CURL REQUIRED)

@@ -5,7 +5,7 @@
 #include <src/Utilities.hpp>
 #include <boost/filesystem/path.hpp>
 #include <Eigen/Eigen>
-#include <opencv/cxeigen.hpp>
+#include <opencv2/core/eigen.hpp>
 #include "ParticleFilterWorkspace.hpp"
 
 namespace fs = boost::filesystem;

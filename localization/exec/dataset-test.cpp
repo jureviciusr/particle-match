@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include <fastmatch-dataset/MetadataEntryReader.hpp>
-#include <opencv/cv.hpp>
+#include <opencv2/opencv.hpp>
 #include <src/ParticleFastMatch.hpp>
 #include <chrono>
 #include "ParticleFilterWorkspace.hpp"

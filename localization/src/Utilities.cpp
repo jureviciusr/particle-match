@@ -35,7 +35,7 @@ using namespace cv;
 Mat Utilities::preprocessImage(const Mat &image) {
     Mat temp = image.clone();
     if (temp.channels() != 1)
-        cvtColor(temp, temp, CV_BGR2GRAY);
+        cvtColor(temp, temp, cv::COLOR_BGR2GRAY);
 
     if (temp.type() != CV_32FC1)
         temp.convertTo(temp, CV_32FC1, 1.0 / 255.0);
@@ -117,7 +117,7 @@ cv::Mat Utilities::extractWarpedMapPart(
     T.at<float>(1, 2) = corners[0].y - roi.y;
     cv::Mat mapPart = map.getMat()(roi);
     cv::Mat destination(templ_size, CV_8UC1);
-    cv::warpAffine(mapPart, destination, T, templ_size, CV_INTER_NN | CV_WARP_INVERSE_MAP);
+    cv::warpAffine(mapPart, destination, T, templ_size, cv::INTER_NEAREST | cv::WARP_INVERSE_MAP);
     return destination;
 }
 
@@ -160,7 +160,7 @@ double Utilities::calculateCorrelation(cv::Mat scene, cv::Mat templ) {
 
 float Utilities::calculateCorrCoeff(cv::Mat scene, cv::Mat templ) {
     cv::Mat result(cv::Size(1, 1), CV_32FC1);
-    cv::matchTemplate(scene, templ, result, CV_TM_CCOEFF_NORMED);
+    cv::matchTemplate(scene, templ, result, cv::TM_CCOEFF_NORMED);
     return result.at<float>(0, 0);
 }
 
